@@ -7,9 +7,9 @@
 
 ### S&P 500
 
-- Overlap window: 2016-03-24 to 2026-03-23
-- Overlap observations: 2467
-- Level correlation: 0.0576
+- Overlap window: 2016-03-28 to 2026-03-23
+- Overlap observations: 2466
+- Level correlation: 0.0569
 - Same-day return correlation: 0.0180
 - Next-day return correlation: -0.0618
 
@@ -23,9 +23,9 @@
 
 ### Dow Jones Industrial Average
 
-- Overlap window: 2016-03-24 to 2026-03-23
-- Overlap observations: 2467
-- Level correlation: 0.1293
+- Overlap window: 2016-03-28 to 2026-03-23
+- Overlap observations: 2466
+- Level correlation: 0.1285
 - Same-day return correlation: 0.0055
 - Next-day return correlation: -0.0531
 
