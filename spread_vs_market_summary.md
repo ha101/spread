@@ -9,33 +9,33 @@
 
 - Overlap window: 2016-03-28 to 2026-03-23
 - Overlap observations: 2466
-- Level correlation: 0.0569
-- Same-day return correlation: 0.0180
-- Next-day return correlation: -0.0618
+- Level correlation: 0.0636
+- Same-day return correlation: 0.0158
+- Next-day return correlation: -0.0601
 
 ### Nasdaq Composite
 
 - Overlap window: 1987-05-20 to 2026-03-23
 - Overlap observations: 9651
-- Level correlation: 0.3210
-- Same-day return correlation: -0.0241
-- Next-day return correlation: -0.0121
+- Level correlation: 0.3224
+- Same-day return correlation: -0.0247
+- Next-day return correlation: -0.0115
 
 ### Dow Jones Industrial Average
 
 - Overlap window: 2016-03-28 to 2026-03-23
 - Overlap observations: 2466
-- Level correlation: 0.1285
-- Same-day return correlation: 0.0055
-- Next-day return correlation: -0.0531
+- Level correlation: 0.1336
+- Same-day return correlation: 0.0034
+- Next-day return correlation: -0.0525
 
 ### VIX
 
 - Overlap window: 1990-01-02 to 2026-03-23
 - Overlap observations: 8993
-- Level correlation: -0.0746
-- Same-day return correlation: 0.0439
-- Next-day return correlation: -0.0165
+- Level correlation: -0.0741
+- Same-day return correlation: 0.0448
+- Next-day return correlation: -0.0169
 
 ## Notes
 

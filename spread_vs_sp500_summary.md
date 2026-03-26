@@ -8,10 +8,10 @@
 
 ## Correlations
 
-- Spread level vs S&P 500 level: 0.0569
-- Daily spread change vs same-day S&P 500 return: 0.0180
-- Daily spread change vs next-day S&P 500 return: -0.0622
-- Daily spread change vs previous-day S&P 500 return: 0.0635
+- Spread level vs S&P 500 level: 0.0636
+- Daily spread change vs same-day S&P 500 return: 0.0157
+- Daily spread change vs next-day S&P 500 return: -0.0605
+- Daily spread change vs previous-day S&P 500 return: 0.0666
 
 ## Notes
 
