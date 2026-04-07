@@ -7,11 +7,11 @@
 
 ### S&P 500
 
-- Overlap window: 2016-04-04 to 2026-03-30
-- Overlap observations: 2466
-- Level correlation: 0.0759
-- Same-day return correlation: 0.0153
-- Next-day return correlation: -0.0601
+- Overlap window: 2016-04-07 to 2026-03-30
+- Overlap observations: 2463
+- Level correlation: 0.0743
+- Same-day return correlation: 0.0154
+- Next-day return correlation: -0.0603
 
 ### Nasdaq Composite
 
@@ -23,11 +23,11 @@
 
 ### Dow Jones Industrial Average
 
-- Overlap window: 2016-04-04 to 2026-03-30
-- Overlap observations: 2466
-- Level correlation: 0.1427
-- Same-day return correlation: 0.0026
-- Next-day return correlation: -0.0520
+- Overlap window: 2016-04-07 to 2026-03-30
+- Overlap observations: 2463
+- Level correlation: 0.1409
+- Same-day return correlation: 0.0027
+- Next-day return correlation: -0.0523
 
 ### VIX
 
