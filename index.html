@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Crude Benchmark Spreads</title>
+<title>Crude Oil Spot Spreads</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
   :root {
@@ -168,7 +168,7 @@
 </head>
 <body>
   <main class="page">
-    <h1>Crude Benchmark Spreads</h1>
+    <h1>Crude Oil Spot Spreads</h1>
     <section class="toolbar">
       <div class="toolbar-row" id="pairControls">
         <span class="toolbar-label">Spread</span>
@@ -203,9 +203,9 @@
       { key: 'max', label: 'MAX', days: null },
     ];
     const PAIRS = [
-      { key: 'brent_wti', label: 'Brent - WTI', dataset: 'daily', left: 'brent', right: 'wti' },
-      { key: 'brent_dubai', label: 'Brent - Dubai', dataset: 'monthly', left: 'brent', right: 'dubai' },
-      { key: 'wti_dubai', label: 'WTI - Dubai', dataset: 'monthly', left: 'wti', right: 'dubai' },
+      { key: 'brent_wti', label: 'Brent − WTI Spot', dataset: 'daily', left: 'brent', right: 'wti' },
+      { key: 'brent_dubai', label: 'Brent − Dubai (Mo. Avg)', dataset: 'monthly', left: 'brent', right: 'dubai' },
+      { key: 'wti_dubai', label: 'WTI − Dubai (Mo. Avg)', dataset: 'monthly', left: 'wti', right: 'dubai' },
     ];
     const SERIES_COLORS = {
       spread: '#1b6878',
@@ -234,8 +234,15 @@
       return PAIRS.find(item => item.key === key) ?? PAIRS[0];
     }
 
-    function getBenchmarkLabel(key) {
-      return window.BENCHMARK_DATA.benchmarkLabels[key] ?? key;
+    function getBenchmarkLabel(key, pair) {
+      const base = window.BENCHMARK_DATA.benchmarkLabels[key] ?? key;
+      if (!pair) return base;
+      // Daily pair: WTI & Brent are spot, Dubai is monthly avg
+      if (pair.dataset === 'daily') {
+        return key === 'dubai' ? `${base} (Mo. Avg)` : `${base} Spot`;
+      }
+      // Monthly pair: everything is monthly avg
+      return `${base} (Mo. Avg)`;
     }
 
     function getMaLabel(pair) {
@@ -362,7 +369,7 @@
             data-series="${key}"
             ${state.seriesVisibility[key] && selectedSeriesCount === 1 ? 'disabled' : ''}
           >
-            ${getBenchmarkLabel(key)}
+            ${getBenchmarkLabel(key, currentPair)}
           </button>
         `).join('')}
       `;
@@ -478,7 +485,7 @@
 
       const useLineSpread = pair.dataset === 'monthly' || labels.length > 1200;
       const benchmarkDatasets = benchmarkKeys.map(key => ({
-        label: getBenchmarkLabel(key),
+        label: getBenchmarkLabel(key, pair),
         data: benchmarkSeriesByKey[key],
         type: 'line',
         borderColor: SERIES_COLORS[key],
