@@ -3,7 +3,9 @@ name: Refresh Daily Data
 on:
   workflow_dispatch:
   schedule:
-    - cron: '20 15 * * 1-5'
+    # Hourly during NYMEX/ICE trading hours, weekdays only.
+    # 14:00-21:00 UTC covers US market open through settlement.
+    - cron: '0 14-21 * * 1-5'
 
 permissions:
   contents: write
@@ -32,6 +34,9 @@ jobs:
         with:
           python-version: '3.12'
 
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
       - name: Configure Pages
         uses: actions/configure-pages@v5
 
@@ -53,6 +58,8 @@ jobs:
             benchmark_data.js \
             wti_fred.csv \
             brent_fred.csv \
+            wti_yf.csv \
+            brent_yf.csv \
             wti_monthly_fred.csv \
             brent_monthly_fred.csv \
             dubai_monthly_fred.csv \
