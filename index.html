@@ -130,14 +130,13 @@
     font-size: 12px;
     font-weight: 600;
     cursor: pointer;
-    transition: transform 0.15s ease, border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+    transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
   }
 
   .chip:hover, .chip.active {
     border-color: rgba(27, 104, 120, 0.32);
     background: rgba(27, 104, 120, 0.10);
     color: var(--accent);
-    transform: translateY(-1px);
   }
 
   .chip.active[data-overlay] {
@@ -158,6 +157,8 @@
     backdrop-filter: blur(10px);
   }
 
+  .chart-shell + .chart-shell { margin-top: 10px; }
+
   .chart-frame {
     position: relative;
     width: 100%;
@@ -172,7 +173,7 @@
     display: flex;
     align-items: baseline;
     gap: 10px;
-    margin-bottom: 14px;
+    margin-bottom: 6px;
     padding: 0 4px;
   }
 
@@ -188,7 +189,7 @@
   .callout-value.negative { color: #a44b36; }
 
   .callout-meta { color: var(--muted); font-size: 12px; font-weight: 500; line-height: 1.3; }
-  .callout-change { font-weight: 700; }
+  .callout-change { font-weight: 700; font-variant-numeric: tabular-nums; }
   .callout-change.up { color: #326956; }
   .callout-change.down { color: #a44b36; }
 
@@ -241,7 +242,7 @@
   .stats-row {
     display: flex;
     gap: 20px;
-    margin-bottom: 14px;
+    margin-bottom: 20px;
     padding: 0 4px;
     color: var(--muted);
     font-size: 12px;
@@ -258,7 +259,7 @@
     flex-wrap: wrap;
     align-items: center;
     gap: 10px 16px;
-    margin-bottom: 14px;
+    margin-top: 10px;
     padding: 0 4px;
     color: var(--muted);
     font-size: 11px;
@@ -289,20 +290,8 @@
     opacity: 0.6;
   }
 
-  #spotPanel {
-    border-bottom-left-radius: 0;
-    border-bottom-right-radius: 0;
-    border-bottom: none;
-    margin-bottom: 0;
-  }
-
-  #spotPanel + .chart-shell {
-    border-top-left-radius: 0;
-    border-top-right-radius: 0;
-  }
-
   /* ── Term structure ── */
-  .term-section { margin-top: 32px; }
+  .term-section { margin-top: 32px; margin-bottom: 10px; }
 
   .term-header {
     display: flex;
@@ -387,8 +376,6 @@
       </section>
     </div>
 
-    <div class="legend-bar" id="legend"></div>
-
     <section class="chart-shell" id="spotPanel" style="display:none">
       <div class="spot-frame">
         <canvas id="spotChart"></canvas>
@@ -402,6 +389,8 @@
       </div>
       <div class="panel-label">Spread</div>
     </section>
+
+    <div class="legend-bar" id="legend"></div>
 
     <footer class="site-footer" id="siteFooter"></footer>
   </main>
@@ -660,7 +649,7 @@
         <span class="callout-value ${spread >= 0 ? 'positive' : 'negative'}">$${spread.toFixed(2)}</span>
         <span class="callout-meta">
           <span class="callout-change ${dir}">${sign}${change.toFixed(2)}</span>
-          &middot; ${dateLabel}
+          &middot; Spot ${dateLabel}
         </span>
       `;
     }
@@ -1096,7 +1085,7 @@
 
       const latestDate = dates.filter(Boolean).sort().pop();
       const metaEl = document.getElementById('termMeta');
-      if (metaEl && latestDate) metaEl.textContent = `As of ${fmtDate(latestDate)}`;
+      if (metaEl && latestDate) metaEl.textContent = `Futures as of ${fmtDate(latestDate)}`;
 
       const barColors = values.map(v =>
         v === null ? 'rgba(0,0,0,0)' : v >= 0 ? 'rgba(50, 105, 86, 0.55)' : 'rgba(164, 75, 54, 0.55)'
