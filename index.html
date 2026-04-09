@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Crude Oil Spot Spreads</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
 <style>
   :root {
     --bg: #f4ecdf;
@@ -191,6 +192,82 @@
     font-style: italic;
   }
 
+  /* ── Current value callout ── */
+  .callout {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 14px;
+    padding: 0 4px;
+  }
+
+  .callout-value {
+    font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+    font-size: clamp(28px, 4vw, 42px);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1;
+  }
+
+  .callout-value.positive { color: #326956; }
+  .callout-value.negative { color: #a44b36; }
+
+  .callout-meta {
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.3;
+  }
+
+  .callout-change {
+    font-weight: 700;
+  }
+
+  .callout-change.up { color: #326956; }
+  .callout-change.down { color: #a44b36; }
+
+  /* ── Toolbar dividers ── */
+  .toolbar-row + .toolbar-row {
+    padding-top: 10px;
+    border-top: 1px solid rgba(72, 58, 43, 0.08);
+  }
+
+  /* ── Legend dots for futures ── */
+  .futures-chart-shell h3 .legend-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 6px;
+    vertical-align: middle;
+    position: relative;
+    top: -1px;
+  }
+
+  .legend-dot.spread { background: #1b6878; }
+  .legend-dot.ma { background: #b76a22; }
+
+  /* ── Footer ── */
+  .site-footer {
+    margin-top: 32px;
+    padding: 16px 4px;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 11px;
+    line-height: 1.6;
+  }
+
+  .site-footer a {
+    color: var(--muted);
+    text-decoration: underline;
+    text-decoration-color: rgba(111, 97, 83, 0.3);
+    text-underline-offset: 2px;
+  }
+
+  .site-footer a:hover {
+    color: var(--text);
+  }
+
   @media (max-width: 760px) {
     .page {
       padding: 18px 12px 20px;
@@ -249,6 +326,7 @@
         <span class="toolbar-label">View</span>
       </div>
     </section>
+    <div class="callout" id="callout"></div>
     <section class="chart-shell">
       <div class="chart-frame">
         <canvas id="chart"></canvas>
@@ -261,6 +339,7 @@
       </div>
     </section>
     <div class="futures-grid" id="futuresGrid"></div>
+    <footer class="site-footer" id="siteFooter"></footer>
   </main>
 
   <script src="./benchmark_data.js"></script>
@@ -464,6 +543,8 @@
         button.addEventListener('click', () => {
           state.pairKey = button.dataset.pair;
           renderToolbar();
+          renderCallout();
+          renderFooter();
           rebuildChart();
         });
       });
@@ -487,6 +568,49 @@
           rebuildChart();
         });
       });
+    }
+
+    function renderCallout() {
+      const pair = getPair(state.pairKey);
+      const rows = buildRowsForPair(pair);
+      if (rows.length < 2) {
+        document.getElementById('callout').innerHTML = '';
+        return;
+      }
+
+      const latest = rows[rows.length - 1];
+      const previous = rows[rows.length - 2];
+      const spread = +(latest[pair.left] - latest[pair.right]).toFixed(2);
+      const prevSpread = +(previous[pair.left] - previous[pair.right]).toFixed(2);
+      const change = +(spread - prevSpread).toFixed(2);
+      const sign = change >= 0 ? '+' : '';
+      const isPositive = spread >= 0;
+      const changeDir = change >= 0 ? 'up' : 'down';
+
+      const dateLabel = pair.dataset === 'monthly'
+        ? (() => { const [y, m] = latest.date.split('-'); return `${monthNames[Number(m) - 1]} ${y}`; })()
+        : (() => { const [y, m, d] = latest.date.split('-'); return `${monthNames[Number(m) - 1]} ${Number(d)}, ${y}`; })();
+
+      document.getElementById('callout').innerHTML = `
+        <span class="callout-value ${isPositive ? 'positive' : 'negative'}">$${spread.toFixed(2)}</span>
+        <span class="callout-meta">
+          <span class="callout-change ${changeDir}">${sign}${change.toFixed(2)}</span>
+          &middot; ${dateLabel}
+        </span>
+      `;
+    }
+
+    function renderFooter() {
+      const pair = getPair(state.pairKey);
+      const rows = buildRowsForPair(pair);
+      const lastDate = rows.length ? rows[rows.length - 1].date : '—';
+
+      document.getElementById('siteFooter').innerHTML = `
+        Spot data from <a href="https://fred.stlouisfed.org/" target="_blank" rel="noopener">FRED</a>
+        (Federal Reserve Bank of St. Louis).
+        Futures data from <a href="https://finance.yahoo.com/" target="_blank" rel="noopener">Yahoo Finance</a>.
+        Last updated: ${lastDate}.
+      `;
     }
 
     function resetCanvasSize() {
@@ -639,6 +763,19 @@
             legend: {
               display: false,
             },
+            annotation: {
+              annotations: {
+                zeroLine: {
+                  type: 'line',
+                  yMin: 0,
+                  yMax: 0,
+                  borderColor: 'rgba(72, 58, 43, 0.22)',
+                  borderWidth: 1,
+                  borderDash: [4, 3],
+                  drawTime: 'beforeDatasetsDraw',
+                },
+              },
+            },
             tooltip: {
               backgroundColor: '#fff7eb',
               borderColor: 'rgba(72, 58, 43, 0.18)',
@@ -706,6 +843,8 @@
 
     let chart = null;
     renderToolbar();
+    renderCallout();
+    renderFooter();
     rebuildChart();
     let lastCompactViewport = isCompactViewport();
     let resizeFrame = null;
@@ -780,10 +919,21 @@
       return base;
     }
 
-    function formatFuturesAxisTick(dateValue, totalPoints, compact) {
-      const datePart = dateValue.split(' ')[0];
+    function formatFuturesAxisTick(dateValue, totalPoints, compact, spanDays) {
+      const parts = dateValue.split(' ');
+      const datePart = parts[0];
       const [year, month, day] = datePart.split('-');
       const monthLabel = monthNames[Number(month) - 1];
+
+      // For very short time spans (< 90 days), always show day-level ticks
+      if (spanDays !== undefined && spanDays < 90) {
+        if (parts.length > 1 && spanDays < 7) {
+          // Intraday-level: show date + time
+          return compact ? [`${monthLabel} ${Number(day)}`, parts[1]] : `${monthLabel} ${Number(day)} ${parts[1]}`;
+        }
+        return `${monthLabel} ${Number(day)}`;
+      }
+
       if (totalPoints > 5000) return year;
       if (totalPoints > 1200) return compact ? [monthLabel, year] : `${monthLabel} ${year}`;
       if (totalPoints > 260) return compact ? [monthLabel, year] : `${monthLabel} ${year}`;
@@ -813,7 +963,11 @@
       const grid = document.getElementById('futuresGrid');
       grid.innerHTML = window.FUTURES_DATA.tenors.map(tenor => `
         <div class="futures-chart-shell">
-          <h3>${TENOR_DISPLAY[tenor] ?? tenor}</h3>
+          <h3>
+            <span class="legend-dot spread"></span>
+            <span class="legend-dot ma"></span>
+            ${TENOR_DISPLAY[tenor] ?? tenor}
+          </h3>
           <div class="futures-chart-frame" id="futures-frame-${tenor}">
             <canvas id="futures-${tenor}"></canvas>
           </div>
@@ -845,6 +999,11 @@
       const spreadValues = rows.map(r => r[1]);
       const maValues = movingAverage(spreadValues, 20);
       const useLineSpread = labels.length > 500;
+
+      // Compute time span in days for smarter axis formatting
+      const firstTs = parseFuturesTimestamp(labels[0]);
+      const lastTs = parseFuturesTimestamp(labels[labels.length - 1]);
+      const spanDays = (lastTs - firstTs) / (24 * 60 * 60 * 1000);
 
       const canvas = document.getElementById(`futures-${tenor}`);
       if (!canvas) return null;
@@ -899,6 +1058,19 @@
           interaction: { mode: 'index', intersect: false },
           plugins: {
             legend: { display: false },
+            annotation: {
+              annotations: {
+                zeroLine: {
+                  type: 'line',
+                  yMin: 0,
+                  yMax: 0,
+                  borderColor: 'rgba(72, 58, 43, 0.22)',
+                  borderWidth: 1,
+                  borderDash: [4, 3],
+                  drawTime: 'beforeDatasetsDraw',
+                },
+              },
+            },
             tooltip: {
               backgroundColor: '#fff7eb',
               borderColor: 'rgba(72, 58, 43, 0.18)',
@@ -928,7 +1100,7 @@
                 autoSkip: true,
                 maxTicksLimit: compact ? 4 : 8,
                 callback(value) {
-                  return formatFuturesAxisTick(this.getLabelForValue(value), labels.length, compact);
+                  return formatFuturesAxisTick(this.getLabelForValue(value), labels.length, compact, spanDays);
                 },
               },
               grid: { color: 'rgba(72, 58, 43, 0)' },
