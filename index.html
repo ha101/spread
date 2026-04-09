@@ -751,17 +751,40 @@
     const futuresState = { horizonKey: '3y' };
     let futuresCharts = [];
 
+    function parseFuturesTimestamp(ts) {
+      // Handles both 'YYYY-MM-DD' and 'YYYY-MM-DD HH:MM'
+      const parts = ts.split(' ');
+      const [year, month, day] = parts[0].split('-').map(Number);
+      if (parts.length > 1) {
+        const [hour, minute] = parts[1].split(':').map(Number);
+        return Date.UTC(year, month - 1, day, hour, minute);
+      }
+      return Date.UTC(year, month - 1, day);
+    }
+
     function filterFuturesRows(rows, horizonKey) {
       const horizon = FUTURES_HORIZONS.find(h => h.key === horizonKey) ?? FUTURES_HORIZONS[0];
       if (horizon.days === null || rows.length === 0) return rows.slice();
-      const latestTime = dateToUtc(rows[rows.length - 1][0]);
+      const latestTime = parseFuturesTimestamp(rows[rows.length - 1][0]);
       const cutoff = latestTime - (horizon.days * 24 * 60 * 60 * 1000);
-      return rows.filter(row => dateToUtc(row[0]) >= cutoff);
+      return rows.filter(row => parseFuturesTimestamp(row[0]) >= cutoff);
+    }
+
+    function formatFuturesTimestamp(ts) {
+      // Returns display string for tooltip: 'Mon DD, YYYY' or 'Mon DD, YYYY HH:MM'
+      const parts = ts.split(' ');
+      const [year, month, day] = parts[0].split('-');
+      const monthLabel = monthNames[Number(month) - 1];
+      const base = `${monthLabel} ${Number(day)}, ${year}`;
+      if (parts.length > 1) return `${base} ${parts[1]}`;
+      return base;
     }
 
     function formatFuturesAxisTick(dateValue, totalPoints, compact) {
-      const [year, month, day] = dateValue.split('-');
+      const datePart = dateValue.split(' ')[0];
+      const [year, month, day] = datePart.split('-');
       const monthLabel = monthNames[Number(month) - 1];
+      if (totalPoints > 5000) return year;
       if (totalPoints > 1200) return compact ? [monthLabel, year] : `${monthLabel} ${year}`;
       if (totalPoints > 260) return compact ? [monthLabel, year] : `${monthLabel} ${year}`;
       return `${monthLabel} ${Number(day)}`;
@@ -887,8 +910,7 @@
               callbacks: {
                 title(items) {
                   if (!items.length) return '';
-                  const [yr, mo, dy] = items[0].label.split('-');
-                  return `${monthNames[Number(mo) - 1]} ${Number(dy)}, ${yr}`;
+                  return formatFuturesTimestamp(items[0].label);
                 },
                 label(ctx) {
                   return ctx.parsed.y === null

@@ -1,9 +1,10 @@
-name: Refresh Daily Data
+name: Refresh Data
 
 on:
   workflow_dispatch:
   schedule:
-    - cron: '20 15 * * 1-5'
+    # Hourly during US/London market overlap (13:00-21:00 UTC, Mon-Fri)
+    - cron: '5 13-21 * * 1-5'
 
 permissions:
   contents: write

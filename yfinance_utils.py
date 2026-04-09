@@ -86,6 +86,68 @@ def fetch_futures_contract(base, month_code, year_2digit, cache_dir):
     return fetch_yfinance_daily(ticker, start_date='2000-01-01', cache_path=cache_path)
 
 
+def fetch_yfinance_hourly(ticker, cache_path=None):
+    """Fetch hourly close prices from Yahoo Finance (up to ~730 days).
+
+    Returns a dict of {datetime_str: close_price} where datetime_str is
+    'YYYY-MM-DD HH:MM'.  Falls back to cache_path on failure.
+    """
+    if yf is None:
+        raise ImportError('yfinance is not installed')
+
+    series = {}
+    try:
+        df = yf.download(
+            ticker,
+            period='730d',
+            interval='1h',
+            auto_adjust=True,
+            progress=False,
+        )
+        if df.empty:
+            raise ValueError(f'No hourly data returned for {ticker}')
+
+        for dt_index, row in df.iterrows():
+            dt_str = dt_index.strftime('%Y-%m-%d %H:%M')
+            close = row['Close']
+            if hasattr(close, 'item'):
+                close = close.item()
+            close = float(close)
+            if close > 0:
+                series[dt_str] = round(close, 2)
+
+        if cache_path is not None and series:
+            _write_cache_hourly(cache_path, series)
+
+    except Exception:
+        if cache_path is not None and Path(cache_path).exists():
+            series = _read_cache_hourly(cache_path)
+        else:
+            raise
+
+    return series
+
+
+def fetch_futures_contract_hourly(base, month_code, year_2digit, cache_dir):
+    """Fetch hourly closes for a single futures contract.
+
+    Returns dict of {datetime_str: close_price}.
+    """
+    ticker = futures_ticker(base, month_code, year_2digit)
+    cache_path = Path(cache_dir) / f'{base}{month_code}{year_2digit:02d}_hourly.csv'
+    return fetch_yfinance_hourly(ticker, cache_path=cache_path)
+
+
+def fetch_front_month_hourly(cache_dir):
+    """Fetch hourly front-month continuous data for WTI and Brent.
+
+    Returns (wti_dict, brent_dict) each {datetime_str: price}.
+    """
+    wti = fetch_yfinance_hourly('CL=F', Path(cache_dir) / 'CL_front_hourly.csv')
+    brent = fetch_yfinance_hourly('BZ=F', Path(cache_dir) / 'BZ_front_hourly.csv')
+    return wti, brent
+
+
 def _write_cache(path, series):
     lines = ['observation_date,value']
     for date_str in sorted(series):
@@ -102,4 +164,28 @@ def _read_cache(path):
         if value in (None, '', '.'):
             continue
         series[row['observation_date']] = float(value)
+    return series
+
+
+def _write_cache_hourly(path, series):
+    """Write hourly cache.  Merges with existing cache to preserve history."""
+    existing = {}
+    if Path(path).exists():
+        existing = _read_cache_hourly(path)
+    existing.update(series)
+    lines = ['observation_datetime,value']
+    for dt_str in sorted(existing):
+        lines.append(f'{dt_str},{existing[dt_str]:.2f}')
+    Path(path).write_text('\n'.join(lines) + '\n')
+
+
+def _read_cache_hourly(path):
+    text = Path(path).read_text()
+    reader = csv.DictReader(StringIO(text))
+    series = {}
+    for row in reader:
+        value = row.get('value', '')
+        if value in (None, '', '.'):
+            continue
+        series[row['observation_datetime']] = float(value)
     return series

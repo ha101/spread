@@ -3,6 +3,12 @@
 For each trading day, determines which CME contract represents N months out,
 fetches Brent and WTI prices for that contract, and computes the spread.
 Uses front-month continuous tickers (CL=F, BZ=F) for the 1m tenor.
+
+Produces two resolution tiers:
+  - daily: full history back to 2015 (from individual contract CSVs)
+  - hourly: last ~730 days (from Yahoo Finance 1h interval), accumulating
+    in the cache so history grows beyond the rolling window over time.
+
 Outputs futures_data.js for the website.
 """
 
@@ -12,8 +18,11 @@ from pathlib import Path
 from yfinance_utils import (
     MONTH_CODES,
     fetch_futures_contract,
+    fetch_futures_contract_hourly,
     fetch_yfinance_daily,
+    fetch_front_month_hourly,
     _read_cache,
+    _read_cache_hourly,
 )
 
 BASE_PATH = Path(__file__).parent
@@ -102,6 +111,55 @@ def fetch_all_contracts(contracts):
     return wti_by_contract, brent_by_contract
 
 
+# ── Hourly data ─────────────────────────────────────────────────────
+
+def fetch_front_month_hourly_series():
+    """Fetch hourly front-month continuous data for WTI and Brent.
+
+    Returns (wti_dict, brent_dict) where each is {datetime_str: price}.
+    """
+    CACHE_DIR.mkdir(exist_ok=True)
+    return fetch_front_month_hourly(CACHE_DIR)
+
+
+def fetch_all_contracts_hourly(contracts):
+    """Fetch hourly data for non-expired contracts.
+
+    Returns two dicts keyed by (full_year, month) -> {datetime_str: price}.
+    """
+    CACHE_DIR.mkdir(exist_ok=True)
+    wti_by_contract = {}
+    brent_by_contract = {}
+
+    for y2, month_num, code, full_year in contracts:
+        key = (full_year, month_num)
+
+        contract_expiry_approx = date(full_year, month_num, 1)
+        if contract_expiry_approx < date.today() - timedelta(days=60):
+            # For expired contracts, only use cached hourly data.
+            wti_cache = CACHE_DIR / f'CL{code}{y2:02d}_hourly.csv'
+            bz_cache = CACHE_DIR / f'BZ{code}{y2:02d}_hourly.csv'
+            if wti_cache.exists():
+                wti_by_contract[key] = _read_cache_hourly(wti_cache)
+            if bz_cache.exists():
+                brent_by_contract[key] = _read_cache_hourly(bz_cache)
+            continue
+
+        try:
+            wti_by_contract[key] = fetch_futures_contract_hourly('CL', code, y2, CACHE_DIR)
+        except Exception as exc:
+            print(f'  Warning: CL{code}{y2:02d} hourly fetch failed: {exc}')
+
+        try:
+            brent_by_contract[key] = fetch_futures_contract_hourly('BZ', code, y2, CACHE_DIR)
+        except Exception as exc:
+            print(f'  Warning: BZ{code}{y2:02d} hourly fetch failed: {exc}')
+
+    return wti_by_contract, brent_by_contract
+
+
+# ── Spread building ─────────────────────────────────────────────────
+
 def build_front_month_spread(wti_front, brent_front):
     """Build the 1m spread from continuous front-month tickers."""
     common_dates = sorted(set(wti_front) & set(brent_front))
@@ -112,18 +170,20 @@ def build_front_month_spread(wti_front, brent_front):
 
 
 def build_tenor_series(wti_by_contract, brent_by_contract, tenor_months):
-    """Build a daily spread series for a given tenor.
+    """Build a spread series for a given tenor.
 
-    Returns a sorted list of [date_str, spread_value].
+    Returns a sorted list of [datetime_or_date_str, spread_value].
     """
-    # Collect all trading dates from all contracts.
-    all_dates = set()
+    # Collect all trading timestamps from all contracts.
+    all_timestamps = set()
     for series in list(wti_by_contract.values()) + list(brent_by_contract.values()):
-        all_dates.update(series.keys())
+        all_timestamps.update(series.keys())
 
     rows = []
-    for date_str in sorted(all_dates):
-        parts = date_str.split('-')
+    for ts in sorted(all_timestamps):
+        # Extract date portion (works for both 'YYYY-MM-DD' and 'YYYY-MM-DD HH:MM').
+        date_part = ts[:10]
+        parts = date_part.split('-')
         if len(parts) != 3:
             continue
         y, m, d = int(parts[0]), int(parts[1]), int(parts[2])
@@ -135,15 +195,38 @@ def build_tenor_series(wti_by_contract, brent_by_contract, tenor_months):
         target_year, target_month = contract_month_for_tenor(trading_date, tenor_months)
         key = (target_year, target_month)
 
-        wti_price = wti_by_contract.get(key, {}).get(date_str)
-        brent_price = brent_by_contract.get(key, {}).get(date_str)
+        wti_price = wti_by_contract.get(key, {}).get(ts)
+        brent_price = brent_by_contract.get(key, {}).get(ts)
 
         if wti_price is not None and brent_price is not None:
             spread = round(brent_price - wti_price, 2)
-            rows.append([date_str, spread])
+            rows.append([ts, spread])
 
     return rows
 
+
+def merge_daily_hourly(daily_rows, hourly_rows):
+    """Merge daily and hourly spread rows, preferring hourly where available.
+
+    Daily rows have keys like 'YYYY-MM-DD'.
+    Hourly rows have keys like 'YYYY-MM-DD HH:MM'.
+
+    For dates that have hourly data, the daily row is dropped.
+    Result is sorted chronologically.
+    """
+    # Find dates covered by hourly data.
+    hourly_dates = set()
+    for row in hourly_rows:
+        hourly_dates.add(row[0][:10])
+
+    # Keep daily rows only for dates with no hourly coverage.
+    merged = [row for row in daily_rows if row[0][:10] not in hourly_dates]
+    merged.extend(hourly_rows)
+    merged.sort(key=lambda r: r[0])
+    return merged
+
+
+# ── Output ──────────────────────────────────────────────────────────
 
 def format_js_rows(rows):
     """Format rows as a JS array string."""
@@ -177,26 +260,52 @@ def main():
     contracts = enumerate_contracts(START_YEAR, end_year)
     print(f'Enumerating {len(contracts)} contract months from {START_YEAR} to {end_year}')
 
-    print('Fetching front-month continuous data...')
+    # ── Daily data (full history) ──
+    print('Fetching front-month continuous data (daily)...')
     wti_front, brent_front = fetch_front_month_series()
     print(f'  CL=F: {len(wti_front)} days, BZ=F: {len(brent_front)} days')
 
-    print('Fetching individual contract data...')
+    print('Fetching individual contract data (daily)...')
     wti_by_contract, brent_by_contract = fetch_all_contracts(contracts)
     print(f'  WTI contracts with data: {len(wti_by_contract)}')
     print(f'  Brent contracts with data: {len(brent_by_contract)}')
 
+    # ── Hourly data (last ~730 days, accumulating) ──
+    print('Fetching front-month continuous data (hourly)...')
+    wti_front_h, brent_front_h = fetch_front_month_hourly_series()
+    print(f'  CL=F hourly: {len(wti_front_h)} bars, BZ=F hourly: {len(brent_front_h)} bars')
+
+    # Only fetch hourly for contracts that are within Yahoo's ~730-day window.
+    hourly_cutoff = today - timedelta(days=730)
+    hourly_contracts = [
+        c for c in contracts
+        if date(c[3], c[1], 1) >= hourly_cutoff
+    ]
+    print(f'Fetching individual contract data (hourly, {len(hourly_contracts)} contracts)...')
+    wti_by_contract_h, brent_by_contract_h = fetch_all_contracts_hourly(hourly_contracts)
+    print(f'  WTI hourly contracts with data: {len(wti_by_contract_h)}')
+    print(f'  Brent hourly contracts with data: {len(brent_by_contract_h)}')
+
+    # ── Build and merge spread series ──
     tenor_rows = []
     for tenor, label in zip(TENORS, TENOR_LABELS):
         if tenor == 1:
-            rows = build_front_month_spread(wti_front, brent_front)
+            daily_rows = build_front_month_spread(wti_front, brent_front)
+            hourly_rows = build_front_month_spread(wti_front_h, brent_front_h)
         else:
-            rows = build_tenor_series(wti_by_contract, brent_by_contract, tenor)
-        tenor_rows.append(rows)
-        if rows:
-            print(f'  {label}: {len(rows)} days ({rows[0][0]} to {rows[-1][0]})')
+            daily_rows = build_tenor_series(wti_by_contract, brent_by_contract, tenor)
+            hourly_rows = build_tenor_series(wti_by_contract_h, brent_by_contract_h, tenor)
+
+        merged = merge_daily_hourly(daily_rows, hourly_rows)
+        tenor_rows.append(merged)
+
+        daily_count = len(daily_rows)
+        hourly_count = len(hourly_rows)
+        total_count = len(merged)
+        if merged:
+            print(f'  {label}: {total_count} points ({daily_count} daily + {hourly_count} hourly, {merged[0][0]} to {merged[-1][0]})')
         else:
-            print(f'  {label}: 0 days')
+            print(f'  {label}: 0 points')
 
     write_output(tenor_rows)
     print(f'Wrote {OUTPUT_PATH.name}')
