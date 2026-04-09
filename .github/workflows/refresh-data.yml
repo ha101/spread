@@ -42,6 +42,7 @@ jobs:
       - name: Refresh generated datasets
         run: |
           python refresh_spread_history.py
+          python fetch_opec_basket.py
           python build_benchmark_dataset.py
           python build_futures_spread.py
           python build_spread_market_dataset.py
@@ -63,6 +64,7 @@ jobs:
             wti_monthly_fred.csv \
             brent_monthly_fred.csv \
             dubai_monthly_fred.csv \
+            opec_basket.csv \
             sp500_fred.txt \
             nasdaqcom_fred.txt \
             djia_fred.txt \

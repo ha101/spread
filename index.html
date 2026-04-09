@@ -395,8 +395,8 @@
     <footer class="site-footer" id="siteFooter"></footer>
   </main>
 
-  <script src="./benchmark_data.js"></script>
-  <script src="./futures_data.js"></script>
+  <script src="./benchmark_data.js?v=20260409"></script>
+  <script src="./futures_data.js?v=20260409"></script>
   <script>
     /* ── Constants ─────────────────────────────────────────────── */
 
@@ -417,6 +417,8 @@
       { key: 'brent_wti',   label: 'Brent − WTI',   tabLabel: 'Brent − WTI',   dataset: 'daily',   left: 'brent', right: 'wti' },
       { key: 'brent_dubai', label: 'Brent − Dubai',  tabLabel: 'Brent − Dubai',  dataset: 'monthly', left: 'brent', right: 'dubai' },
       { key: 'wti_dubai',   label: 'WTI − Dubai',    tabLabel: 'WTI − Dubai',    dataset: 'monthly', left: 'wti',   right: 'dubai' },
+      { key: 'wti_opec',    label: 'WTI − OPEC',     tabLabel: 'WTI − OPEC',     dataset: 'monthly', left: 'wti',   right: 'opec' },
+      { key: 'brent_opec',  label: 'Brent − OPEC',   tabLabel: 'Brent − OPEC',   dataset: 'monthly', left: 'brent', right: 'opec' },
     ];
 
     const SERIES_COLORS = {
@@ -425,6 +427,7 @@
       wti: '#5d7d45',
       brent: '#8a543f',
       dubai: '#6b5aa6',
+      opec: '#c06040',
     };
 
     const TENOR_COLORS = {
@@ -444,7 +447,7 @@
       rangeKey: '1y',
       overlays: {
         ma: true,
-        wti: false, brent: false, dubai: false,
+        wti: false, brent: false, dubai: false, opec: false,
         '1m': true, '2m': false, '3m': false,
         '6m': false, '12m': false, '24m': false,
       },
@@ -649,7 +652,7 @@
         <span class="callout-value ${spread >= 0 ? 'positive' : 'negative'}">$${spread.toFixed(2)}</span>
         <span class="callout-meta">
           <span class="callout-change ${dir}">${sign}${change.toFixed(2)}</span>
-          &middot; Spot ${dateLabel}
+          &middot; ${pair.label} ${pair.dataset === 'daily' ? 'Spot ' : ''}Spread ${dateLabel}
         </span>
       `;
     }
@@ -678,13 +681,18 @@
     /* ── Footer ────────────────────────────────────────────────── */
 
     function renderFooter() {
-      const rows = buildRowsForPair(getPair(state.pairKey));
+      const pair = getPair(state.pairKey);
+      const rows = buildRowsForPair(pair);
       const lastDate = rows.length ? rows[rows.length - 1].date : '—';
+      const isMonthly = pair.dataset === 'monthly';
+      const priceLabel = isMonthly ? 'Monthly average prices' : 'Spot data';
+      const hasOpec = pair.left === 'opec' || pair.right === 'opec'
+        || Object.keys(state.overlays).includes('opec');
       document.getElementById('siteFooter').innerHTML = `
-        Spot data from <a href="https://fred.stlouisfed.org/" target="_blank" rel="noopener">FRED</a>
-        (Federal Reserve Bank of St. Louis).
-        Futures data from <a href="https://finance.yahoo.com/" target="_blank" rel="noopener">Yahoo Finance</a>.
-        Last updated: ${lastDate}.
+        ${priceLabel} from <a href="https://fred.stlouisfed.org/" target="_blank" rel="noopener">FRED</a>.
+        ${!isMonthly ? 'Futures from <a href="https://finance.yahoo.com/" target="_blank" rel="noopener">Yahoo Finance</a>.' : ''}
+        OPEC basket from <a href="https://countryeconomy.com/raw-materials/opec" target="_blank" rel="noopener">countryeconomy.com</a>.
+        Data through ${lastDate}.
       `;
     }
 
@@ -1188,6 +1196,7 @@
           return;
         }
         if (chart) chart.resize();
+        if (spotChartInstance) spotChartInstance.resize();
         if (termChart) termChart.resize();
       });
     });
