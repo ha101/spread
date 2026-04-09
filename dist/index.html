@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Crude Oil Spot Spreads</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
 <style>
   :root {
     --bg: #f4ecdf;
@@ -166,7 +168,7 @@
   }
 
   .futures-chart-shell h3 {
-    margin-bottom: 8px;
+    margin-bottom: 0;
     color: var(--muted);
     font-family: "Avenir Next", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
     font-size: 13px;
@@ -189,6 +191,116 @@
     color: var(--muted);
     font-size: 13px;
     font-style: italic;
+  }
+
+  /* ── Current value callout ── */
+  .callout {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 14px;
+    padding: 0 4px;
+  }
+
+  .callout-value {
+    font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+    font-size: clamp(28px, 4vw, 42px);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1;
+  }
+
+  .callout-value.positive { color: #326956; }
+  .callout-value.negative { color: #a44b36; }
+
+  .callout-meta {
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.3;
+  }
+
+  .callout-change {
+    font-weight: 700;
+  }
+
+  .callout-change.up { color: #326956; }
+  .callout-change.down { color: #a44b36; }
+
+  /* ── Toolbar dividers ── */
+  .toolbar-row + .toolbar-row {
+    padding-top: 10px;
+    border-top: 1px solid rgba(72, 58, 43, 0.08);
+  }
+
+  /* ── Legend dots for futures ── */
+  .futures-chart-shell h3 .legend-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 6px;
+    vertical-align: middle;
+    position: relative;
+    top: -1px;
+  }
+
+  .legend-dot.spread { background: #1b6878; }
+  .legend-dot.ma { background: #b76a22; }
+
+  .futures-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+
+  .futures-header h3 {
+    margin-bottom: 0;
+  }
+
+  .futures-header-right {
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  .futures-current {
+    font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+
+  .futures-current.positive { color: #326956; }
+  .futures-current.negative { color: #a44b36; }
+
+  .futures-date-range {
+    color: var(--muted);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    opacity: 0.8;
+  }
+
+  /* ── Footer ── */
+  .site-footer {
+    margin-top: 32px;
+    padding: 16px 4px;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 11px;
+    line-height: 1.6;
+  }
+
+  .site-footer a {
+    color: var(--muted);
+    text-decoration: underline;
+    text-decoration-color: rgba(111, 97, 83, 0.3);
+    text-underline-offset: 2px;
+  }
+
+  .site-footer a:hover {
+    color: var(--text);
   }
 
   @media (max-width: 760px) {
@@ -249,6 +361,7 @@
         <span class="toolbar-label">View</span>
       </div>
     </section>
+    <div class="callout" id="callout"></div>
     <section class="chart-shell">
       <div class="chart-frame">
         <canvas id="chart"></canvas>
@@ -261,6 +374,7 @@
       </div>
     </section>
     <div class="futures-grid" id="futuresGrid"></div>
+    <footer class="site-footer" id="siteFooter"></footer>
   </main>
 
   <script src="./benchmark_data.js"></script>
@@ -464,6 +578,8 @@
         button.addEventListener('click', () => {
           state.pairKey = button.dataset.pair;
           renderToolbar();
+          renderCallout();
+          renderFooter();
           rebuildChart();
         });
       });
@@ -487,6 +603,49 @@
           rebuildChart();
         });
       });
+    }
+
+    function renderCallout() {
+      const pair = getPair(state.pairKey);
+      const rows = buildRowsForPair(pair);
+      if (rows.length < 2) {
+        document.getElementById('callout').innerHTML = '';
+        return;
+      }
+
+      const latest = rows[rows.length - 1];
+      const previous = rows[rows.length - 2];
+      const spread = +(latest[pair.left] - latest[pair.right]).toFixed(2);
+      const prevSpread = +(previous[pair.left] - previous[pair.right]).toFixed(2);
+      const change = +(spread - prevSpread).toFixed(2);
+      const sign = change >= 0 ? '+' : '';
+      const isPositive = spread >= 0;
+      const changeDir = change >= 0 ? 'up' : 'down';
+
+      const dateLabel = pair.dataset === 'monthly'
+        ? (() => { const [y, m] = latest.date.split('-'); return `${monthNames[Number(m) - 1]} ${y}`; })()
+        : (() => { const [y, m, d] = latest.date.split('-'); return `${monthNames[Number(m) - 1]} ${Number(d)}, ${y}`; })();
+
+      document.getElementById('callout').innerHTML = `
+        <span class="callout-value ${isPositive ? 'positive' : 'negative'}">$${spread.toFixed(2)}</span>
+        <span class="callout-meta">
+          <span class="callout-change ${changeDir}">${sign}${change.toFixed(2)}</span>
+          &middot; ${dateLabel}
+        </span>
+      `;
+    }
+
+    function renderFooter() {
+      const pair = getPair(state.pairKey);
+      const rows = buildRowsForPair(pair);
+      const lastDate = rows.length ? rows[rows.length - 1].date : '—';
+
+      document.getElementById('siteFooter').innerHTML = `
+        Spot data from <a href="https://fred.stlouisfed.org/" target="_blank" rel="noopener">FRED</a>
+        (Federal Reserve Bank of St. Louis).
+        Futures data from <a href="https://finance.yahoo.com/" target="_blank" rel="noopener">Yahoo Finance</a>.
+        Last updated: ${lastDate}.
+      `;
     }
 
     function resetCanvasSize() {
@@ -639,6 +798,19 @@
             legend: {
               display: false,
             },
+            annotation: {
+              annotations: {
+                zeroLine: {
+                  type: 'line',
+                  yMin: 0,
+                  yMax: 0,
+                  borderColor: 'rgba(72, 58, 43, 0.22)',
+                  borderWidth: 1,
+                  borderDash: [4, 3],
+                  drawTime: 'beforeDatasetsDraw',
+                },
+              },
+            },
             tooltip: {
               backgroundColor: '#fff7eb',
               borderColor: 'rgba(72, 58, 43, 0.18)',
@@ -706,6 +878,8 @@
 
     let chart = null;
     renderToolbar();
+    renderCallout();
+    renderFooter();
     rebuildChart();
     let lastCompactViewport = isCompactViewport();
     let resizeFrame = null;
@@ -780,10 +954,21 @@
       return base;
     }
 
-    function formatFuturesAxisTick(dateValue, totalPoints, compact) {
-      const datePart = dateValue.split(' ')[0];
+    function formatFuturesAxisTick(dateValue, totalPoints, compact, spanDays) {
+      const parts = dateValue.split(' ');
+      const datePart = parts[0];
       const [year, month, day] = datePart.split('-');
       const monthLabel = monthNames[Number(month) - 1];
+
+      // For very short time spans (< 90 days), always show day-level ticks
+      if (spanDays !== undefined && spanDays < 90) {
+        if (parts.length > 1 && spanDays < 7) {
+          // Intraday-level: show date + time
+          return compact ? [`${monthLabel} ${Number(day)}`, parts[1]] : `${monthLabel} ${Number(day)} ${parts[1]}`;
+        }
+        return `${monthLabel} ${Number(day)}`;
+      }
+
       if (totalPoints > 5000) return year;
       if (totalPoints > 1200) return compact ? [monthLabel, year] : `${monthLabel} ${year}`;
       if (totalPoints > 260) return compact ? [monthLabel, year] : `${monthLabel} ${year}`;
@@ -813,7 +998,14 @@
       const grid = document.getElementById('futuresGrid');
       grid.innerHTML = window.FUTURES_DATA.tenors.map(tenor => `
         <div class="futures-chart-shell">
-          <h3>${TENOR_DISPLAY[tenor] ?? tenor}</h3>
+          <div class="futures-header">
+            <h3>
+              <span class="legend-dot spread"></span>
+              <span class="legend-dot ma"></span>
+              ${TENOR_DISPLAY[tenor] ?? tenor}
+            </h3>
+            <div class="futures-header-right" id="futures-meta-${tenor}"></div>
+          </div>
           <div class="futures-chart-frame" id="futures-frame-${tenor}">
             <canvas id="futures-${tenor}"></canvas>
           </div>
@@ -821,74 +1013,115 @@
       `).join('');
     }
 
-    function buildFuturesChart(tenor) {
+    function computeSharedTimeBounds() {
+      // Compute the shared min/max across all tenors after horizon filtering.
+      // All charts will use this window so their x-axes align.
+      if (!window.FUTURES_DATA) return null;
+
+      let globalMin = Infinity;
+      let globalMax = -Infinity;
+
+      for (const tenor of window.FUTURES_DATA.tenors) {
+        const data = window.FUTURES_DATA[tenor];
+        if (!data || data.rows.length === 0) continue;
+        const rows = filterFuturesRows(data.rows, futuresState.horizonKey);
+        if (rows.length === 0) continue;
+        const first = parseFuturesTimestamp(rows[0][0]);
+        const last = parseFuturesTimestamp(rows[rows.length - 1][0]);
+        if (first < globalMin) globalMin = first;
+        if (last > globalMax) globalMax = last;
+      }
+
+      if (globalMin === Infinity) return null;
+      return { min: globalMin, max: globalMax };
+    }
+
+    function fmtShortDate(d) {
+      const [y, m, dy] = d.split('-');
+      return `${monthNames[Number(m) - 1]} ${Number(dy)}, ${y}`;
+    }
+
+    function buildFuturesChart(tenor, timeBounds) {
       const data = window.FUTURES_DATA[tenor];
       if (!data || data.rows.length === 0) {
         const frame = document.getElementById(`futures-frame-${tenor}`);
         if (frame) {
           frame.innerHTML = '<div class="futures-empty">Accumulating data…</div>';
         }
+        const meta = document.getElementById(`futures-meta-${tenor}`);
+        if (meta) meta.innerHTML = '';
         return null;
       }
 
       const compact = isCompactViewport();
       const rows = filterFuturesRows(data.rows, futuresState.horizonKey);
+
+      // Populate header meta even if rows are empty
+      const metaEl = document.getElementById(`futures-meta-${tenor}`);
       if (rows.length === 0) {
         const frame = document.getElementById(`futures-frame-${tenor}`);
         if (frame) {
           frame.innerHTML = '<div class="futures-empty">No data for this time range</div>';
         }
+        if (metaEl) metaEl.innerHTML = '';
         return null;
       }
 
-      const labels = rows.map(r => r[0]);
+      const latestSpread = rows[rows.length - 1][1];
+      const firstDateRaw = rows[0][0].split(' ')[0];
+      const lastDateRaw = rows[rows.length - 1][0].split(' ')[0];
+      if (metaEl) {
+        metaEl.innerHTML = `
+          <span class="futures-current ${latestSpread >= 0 ? 'positive' : 'negative'}">$${latestSpread.toFixed(2)}</span>
+          <div class="futures-date-range">${fmtShortDate(firstDateRaw)} — ${fmtShortDate(lastDateRaw)}</div>
+        `;
+      }
+
+      // Convert rows to {x: timestamp, y: spread} for time scale
+      const dataPoints = rows.map(r => ({ x: parseFuturesTimestamp(r[0]), y: r[1] }));
       const spreadValues = rows.map(r => r[1]);
-      const maValues = movingAverage(spreadValues, 20);
-      const useLineSpread = labels.length > 500;
+      const maRaw = movingAverage(spreadValues, 20);
+      const maPoints = maRaw.map((v, i) => v === null ? null : { x: dataPoints[i].x, y: v }).filter(Boolean);
+
+      const spanMs = (timeBounds ? timeBounds.max - timeBounds.min : dataPoints[dataPoints.length - 1].x - dataPoints[0].x);
+      const spanDays = spanMs / (24 * 60 * 60 * 1000);
+
+      // Choose time unit based on span
+      let timeUnit = 'month';
+      if (spanDays < 14) timeUnit = 'day';
+      else if (spanDays < 90) timeUnit = 'week';
+      else if (spanDays > 365 * 3) timeUnit = 'year';
 
       const canvas = document.getElementById(`futures-${tenor}`);
       if (!canvas) return null;
 
       return new Chart(canvas.getContext('2d'), {
-        type: useLineSpread ? 'line' : 'bar',
+        type: 'line',
         data: {
-          labels,
           datasets: [
-            useLineSpread
-              ? {
-                  label: `Brent − WTI ${TENOR_DISPLAY[tenor]}`,
-                  data: spreadValues,
-                  type: 'line',
-                  borderColor: SERIES_COLORS.spread,
-                  backgroundColor: 'rgba(27, 104, 120, 0.16)',
-                  fill: true,
-                  borderWidth: 1.8,
-                  pointRadius: 0,
-                  pointHitRadius: 6,
-                  tension: 0.14,
-                  spanGaps: true,
-                  order: 2,
-                }
-              : {
-                  label: `Brent − WTI ${TENOR_DISPLAY[tenor]}`,
-                  data: spreadValues,
-                  type: 'bar',
-                  backgroundColor: spreadValues.map(v => v >= 0 ? 'rgba(50, 105, 86, 0.46)' : 'rgba(164, 75, 54, 0.46)'),
-                  borderColor: spreadValues.map(v => v >= 0 ? 'rgba(50, 105, 86, 0.86)' : 'rgba(164, 75, 54, 0.86)'),
-                  borderWidth: 1,
-                  order: 2,
-                },
+            {
+              label: `Brent − WTI ${TENOR_DISPLAY[tenor]}`,
+              data: dataPoints,
+              borderColor: SERIES_COLORS.spread,
+              backgroundColor: 'rgba(27, 104, 120, 0.16)',
+              fill: true,
+              borderWidth: 1.8,
+              pointRadius: 0,
+              pointHitRadius: 6,
+              tension: 0.14,
+              spanGaps: false,
+              order: 2,
+            },
             {
               label: '20d MA',
-              data: maValues,
-              type: 'line',
+              data: maPoints,
               borderColor: SERIES_COLORS.movingAverage,
               backgroundColor: 'transparent',
               borderWidth: 1.4,
               pointRadius: 0,
               pointHitRadius: 6,
               tension: 0.2,
-              spanGaps: true,
+              spanGaps: false,
               order: 1,
             },
           ],
@@ -899,6 +1132,19 @@
           interaction: { mode: 'index', intersect: false },
           plugins: {
             legend: { display: false },
+            annotation: {
+              annotations: {
+                zeroLine: {
+                  type: 'line',
+                  yMin: 0,
+                  yMax: 0,
+                  borderColor: 'rgba(72, 58, 43, 0.22)',
+                  borderWidth: 1,
+                  borderDash: [4, 3],
+                  drawTime: 'beforeDatasetsDraw',
+                },
+              },
+            },
             tooltip: {
               backgroundColor: '#fff7eb',
               borderColor: 'rgba(72, 58, 43, 0.18)',
@@ -910,7 +1156,15 @@
               callbacks: {
                 title(items) {
                   if (!items.length) return '';
-                  return formatFuturesTimestamp(items[0].label);
+                  const d = new Date(items[0].parsed.x);
+                  const mo = monthNames[d.getUTCMonth()];
+                  const dy = d.getUTCDate();
+                  const yr = d.getUTCFullYear();
+                  const hh = String(d.getUTCHours()).padStart(2, '0');
+                  const mm = String(d.getUTCMinutes()).padStart(2, '0');
+                  return hh === '00' && mm === '00'
+                    ? `${mo} ${dy}, ${yr}`
+                    : `${mo} ${dy}, ${yr} ${hh}:${mm}`;
                 },
                 label(ctx) {
                   return ctx.parsed.y === null
@@ -922,14 +1176,23 @@
           },
           scales: {
             x: {
+              type: 'time',
+              min: timeBounds ? timeBounds.min : undefined,
+              max: timeBounds ? timeBounds.max : undefined,
+              time: {
+                unit: timeUnit,
+                displayFormats: {
+                  day: 'MMM d',
+                  week: 'MMM d',
+                  month: 'MMM yyyy',
+                  year: 'yyyy',
+                },
+              },
               ticks: {
                 color: '#6f6153',
                 maxRotation: 0,
                 autoSkip: true,
                 maxTicksLimit: compact ? 4 : 8,
-                callback(value) {
-                  return formatFuturesAxisTick(this.getLabelForValue(value), labels.length, compact);
-                },
               },
               grid: { color: 'rgba(72, 58, 43, 0)' },
             },
@@ -950,8 +1213,9 @@
       futuresCharts = [];
       renderFuturesGrid();
       if (!window.FUTURES_DATA) return;
+      const timeBounds = computeSharedTimeBounds();
       for (const tenor of window.FUTURES_DATA.tenors) {
-        futuresCharts.push(buildFuturesChart(tenor));
+        futuresCharts.push(buildFuturesChart(tenor, timeBounds));
       }
     }
 

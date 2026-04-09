@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Crude Oil Spot Spreads</title>
+<title>Crude Oil Spreads</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
@@ -14,14 +14,11 @@
     --border: rgba(72, 58, 43, 0.14);
     --text: #17120d;
     --muted: #6f6153;
+    --accent: #1b6878;
     --shadow: 0 22px 44px rgba(52, 35, 16, 0.10);
   }
 
-  * {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
 
   body {
     min-height: 100vh;
@@ -33,11 +30,7 @@
       linear-gradient(180deg, #f8f2e8 0%, #ede2d1 100%);
   }
 
-  .page {
-    max-width: 1240px;
-    margin: 0 auto;
-    padding: 24px 16px 32px;
-  }
+  .page { max-width: 1240px; margin: 0 auto; padding: 24px 16px 32px; }
 
   h1 {
     margin-bottom: 18px;
@@ -49,6 +42,36 @@
     line-height: 0.98;
   }
 
+  /* ── Pair tabs ── */
+  .pair-tabs {
+    display: flex;
+    gap: 0;
+    margin-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .pair-tab {
+    padding: 10px 18px;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: color 0.15s ease, border-color 0.15s ease;
+  }
+
+  .pair-tab:hover { color: var(--text); }
+
+  .pair-tab.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+
+  /* ── Toolbar ── */
   .toolbar {
     display: flex;
     flex-direction: column;
@@ -72,9 +95,11 @@
     scrollbar-width: none;
     -ms-overflow-style: none;
   }
+  .toolbar-row::-webkit-scrollbar { display: none; }
 
-  .toolbar-row::-webkit-scrollbar {
-    display: none;
+  .toolbar-row + .toolbar-row {
+    padding-top: 10px;
+    border-top: 1px solid rgba(72, 58, 43, 0.08);
   }
 
   .toolbar-label {
@@ -85,6 +110,14 @@
     letter-spacing: 0.12em;
     font-weight: 700;
     margin-right: 4px;
+  }
+
+  .toolbar-sep {
+    flex: 0 0 auto;
+    width: 1px;
+    height: 20px;
+    background: var(--border);
+    margin: 0 2px;
   }
 
   .chip {
@@ -100,29 +133,27 @@
     transition: transform 0.15s ease, border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
   }
 
-  .chip:hover,
-  .chip.active {
+  .chip:hover, .chip.active {
     border-color: rgba(27, 104, 120, 0.32);
     background: rgba(27, 104, 120, 0.10);
-    color: #1b6878;
+    color: var(--accent);
     transform: translateY(-1px);
   }
 
-  .chip:disabled {
-    opacity: 0.42;
-    cursor: not-allowed;
-    transform: none;
-    color: var(--muted);
-    background: rgba(255, 255, 255, 0.42);
+  .chip.active[data-overlay] {
+    border-color: var(--chip-color, rgba(27, 104, 120, 0.32));
+    background: var(--chip-bg, rgba(27, 104, 120, 0.10));
+    color: var(--chip-color, var(--accent));
   }
 
+  /* ── Chart panels ── */
   .chart-shell {
     padding: 18px;
     background:
       linear-gradient(180deg, rgba(255, 255, 255, 0.78), rgba(255, 255, 255, 0.34) 100%),
       var(--panel);
     border: 1px solid var(--border);
-    border-radius: 28px;
+    border-radius: 22px;
     box-shadow: var(--shadow);
     backdrop-filter: blur(10px);
   }
@@ -134,66 +165,9 @@
     min-height: 360px;
   }
 
-  canvas {
-    display: block;
-    width: 100% !important;
-    height: 100% !important;
-  }
+  canvas { display: block; width: 100% !important; height: 100% !important; }
 
-  h2 {
-    margin: 32px 0 18px;
-    color: var(--text);
-    font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
-    font-size: clamp(22px, 3.5vw, 32px);
-    font-weight: 600;
-    letter-spacing: -0.02em;
-    line-height: 1.1;
-  }
-
-  .futures-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 14px;
-  }
-
-  .futures-chart-shell {
-    padding: 14px;
-    background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.78), rgba(255, 255, 255, 0.34) 100%),
-      var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 22px;
-    box-shadow: var(--shadow);
-    backdrop-filter: blur(10px);
-  }
-
-  .futures-chart-shell h3 {
-    margin-bottom: 0;
-    color: var(--muted);
-    font-family: "Avenir Next", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
-    font-size: 13px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-  }
-
-  .futures-chart-frame {
-    position: relative;
-    width: 100%;
-    height: 260px;
-  }
-
-  .futures-empty {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 260px;
-    color: var(--muted);
-    font-size: 13px;
-    font-style: italic;
-  }
-
-  /* ── Current value callout ── */
+  /* ── Callout ── */
   .callout {
     display: flex;
     align-items: baseline;
@@ -213,74 +187,144 @@
   .callout-value.positive { color: #326956; }
   .callout-value.negative { color: #a44b36; }
 
-  .callout-meta {
-    color: var(--muted);
-    font-size: 12px;
-    font-weight: 500;
-    line-height: 1.3;
-  }
-
-  .callout-change {
-    font-weight: 700;
-  }
-
+  .callout-meta { color: var(--muted); font-size: 12px; font-weight: 500; line-height: 1.3; }
+  .callout-change { font-weight: 700; }
   .callout-change.up { color: #326956; }
   .callout-change.down { color: #a44b36; }
 
-  /* ── Toolbar dividers ── */
-  .toolbar-row + .toolbar-row {
-    padding-top: 10px;
-    border-top: 1px solid rgba(72, 58, 43, 0.08);
+  /* ── Custom tooltip ── */
+  #chartTooltip {
+    position: absolute;
+    pointer-events: none;
+    z-index: 100;
+    background: #fff7eb;
+    border: 1px solid rgba(72, 58, 43, 0.18);
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-family: "Avenir Next", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    font-size: 12px;
+    color: #30261d;
+    box-shadow: 0 8px 24px rgba(52, 35, 16, 0.12);
+    opacity: 0;
+    transition: opacity 0.12s ease;
+    white-space: nowrap;
   }
 
-  /* ── Legend dots for futures ── */
-  .futures-chart-shell h3 .legend-dot {
+  .tt-title {
+    font-weight: 700;
+    color: #17120d;
+    margin-bottom: 6px;
+    font-size: 11px;
+  }
+
+  .tt-line {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 0;
+  }
+
+  .tt-dot {
     display: inline-block;
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    margin-right: 6px;
-    vertical-align: middle;
-    position: relative;
-    top: -1px;
-  }
-
-  .legend-dot.spread { background: #1b6878; }
-  .legend-dot.ma { background: #b76a22; }
-
-  .futures-header {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    margin-bottom: 8px;
-  }
-
-  .futures-header h3 {
-    margin-bottom: 0;
-  }
-
-  .futures-header-right {
-    text-align: right;
     flex-shrink: 0;
   }
 
-  .futures-current {
-    font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
-    font-size: 18px;
+  .tt-line strong {
     font-weight: 700;
-    letter-spacing: -0.01em;
+    color: #17120d;
   }
 
-  .futures-current.positive { color: #326956; }
-  .futures-current.negative { color: #a44b36; }
+  /* ── Stats row ── */
+  .stats-row {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 14px;
+    padding: 0 4px;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 500;
+  }
 
-  .futures-date-range {
+  .stat-item { display: flex; gap: 5px; align-items: baseline; }
+  .stat-label { text-transform: uppercase; font-size: 10px; letter-spacing: 0.08em; font-weight: 700; }
+  .stat-val { font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums; }
+
+  /* ── Legend ── */
+  .legend-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 16px;
+    margin-bottom: 14px;
+    padding: 0 4px;
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+  }
+
+  .legend-item { display: flex; align-items: center; gap: 5px; white-space: nowrap; }
+
+  .legend-dot {
+    display: inline-block;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* ── Stacked panels ── */
+  .spot-frame { position: relative; width: 100%; height: 180px; }
+
+  .panel-label {
+    text-align: right;
     color: var(--muted);
     font-size: 10px;
-    font-weight: 500;
-    letter-spacing: 0.02em;
-    opacity: 0.8;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-top: 6px;
+    opacity: 0.6;
   }
+
+  #spotPanel {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    border-bottom: none;
+    margin-bottom: 0;
+  }
+
+  #spotPanel + .chart-shell {
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+  }
+
+  /* ── Term structure ── */
+  .term-section { margin-top: 32px; }
+
+  .term-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    padding: 0 4px;
+  }
+
+  .term-header h2 {
+    margin: 0;
+    color: var(--text);
+    font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+    font-size: clamp(18px, 2.5vw, 24px);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+  }
+
+  .term-header-meta { color: var(--muted); font-size: 11px; font-weight: 500; }
+
+  .term-frame { position: relative; width: 100%; height: 220px; }
 
   /* ── Footer ── */
   .site-footer {
@@ -298,348 +342,355 @@
     text-decoration-color: rgba(111, 97, 83, 0.3);
     text-underline-offset: 2px;
   }
+  .site-footer a:hover { color: var(--text); }
 
-  .site-footer a:hover {
-    color: var(--text);
-  }
-
+  /* ── Mobile ── */
   @media (max-width: 760px) {
-    .page {
-      padding: 18px 12px 20px;
-    }
-
-    h1 {
-      margin-bottom: 14px;
-      font-size: clamp(28px, 9vw, 40px);
-    }
-
-    .toolbar {
-      margin-bottom: 12px;
-      padding: 10px 12px;
-      border-radius: 18px;
-    }
-
-    .chart-shell {
-      padding: 12px;
-      border-radius: 22px;
-    }
-
-    .chart-frame {
-      height: clamp(320px, calc(100vh - 220px), 560px);
-      min-height: 320px;
-    }
-
-    .futures-grid {
-      grid-template-columns: 1fr;
-    }
-
-    .futures-chart-frame {
-      height: 220px;
-    }
-
-    .futures-empty {
-      height: 220px;
-    }
-
-    h2 {
-      margin: 24px 0 14px;
-    }
+    .page { padding: 18px 12px 20px; }
+    h1 { margin-bottom: 14px; font-size: clamp(28px, 9vw, 40px); }
+    .pair-tabs { gap: 0; margin-bottom: 12px; }
+    .pair-tab { padding: 8px 12px; font-size: 12px; }
+    .toolbar { margin-bottom: 12px; padding: 10px 12px; border-radius: 18px; }
+    .chart-shell { padding: 12px; border-radius: 18px; }
+    .chart-frame { height: clamp(320px, calc(100vh - 220px), 560px); min-height: 320px; }
+    .spot-frame { height: 140px; }
+    .term-frame { height: 180px; }
+    .term-section { margin-top: 24px; }
+    .legend-bar { font-size: 10px; gap: 6px 12px; }
   }
 </style>
 </head>
 <body>
   <main class="page">
-    <h1>Crude Oil Spot Spreads</h1>
+    <h1>Crude Oil Spreads</h1>
+
+    <nav class="pair-tabs" id="pairTabs"></nav>
+
     <section class="toolbar">
-      <div class="toolbar-row" id="pairControls">
-        <span class="toolbar-label">Spread</span>
-      </div>
-      <div class="toolbar-row" id="seriesControls">
-        <span class="toolbar-label">Lines</span>
-      </div>
-      <div class="toolbar-row" id="horizonControls">
-        <span class="toolbar-label">View</span>
-      </div>
+      <div class="toolbar-row" id="spotControls"></div>
+      <div class="toolbar-row" id="futuresControls"></div>
+      <div class="toolbar-row" id="rangeControls"></div>
     </section>
+
     <div class="callout" id="callout"></div>
+    <div class="stats-row" id="statsRow"></div>
+
+    <div class="term-section" id="termSection">
+      <div class="term-header">
+        <h2>Term Structure</h2>
+        <span class="term-header-meta" id="termMeta"></span>
+      </div>
+      <section class="chart-shell">
+        <div class="term-frame">
+          <canvas id="termChart"></canvas>
+        </div>
+      </section>
+    </div>
+
+    <div class="legend-bar" id="legend"></div>
+
+    <section class="chart-shell" id="spotPanel" style="display:none">
+      <div class="spot-frame">
+        <canvas id="spotChart"></canvas>
+      </div>
+      <div class="panel-label">Spot Prices</div>
+    </section>
+
     <section class="chart-shell">
       <div class="chart-frame">
         <canvas id="chart"></canvas>
       </div>
+      <div class="panel-label">Spread</div>
     </section>
-    <h2>Brent − WTI Futures Spread</h2>
-    <section class="toolbar">
-      <div class="toolbar-row" id="futuresHorizonControls">
-        <span class="toolbar-label">View</span>
-      </div>
-    </section>
-    <div class="futures-grid" id="futuresGrid"></div>
+
     <footer class="site-footer" id="siteFooter"></footer>
   </main>
 
   <script src="./benchmark_data.js"></script>
   <script src="./futures_data.js"></script>
   <script>
-    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const HORIZONS = [
-      { key: '1d', label: '1D', days: 1 },
-      { key: '1w', label: '1W', days: 7 },
-      { key: '1m', label: '1M', days: 31 },
-      { key: '6m', label: '6M', days: 183 },
-      { key: '1y', label: '1Y', days: 365 },
-      { key: '3y', label: '3Y', days: 365 * 3 },
-      { key: '5y', label: '5Y', days: 365 * 5 },
-      { key: '10y', label: '10Y', days: 365 * 10 },
-      { key: '20y', label: '20Y', days: 365 * 20 },
-      { key: 'max', label: 'MAX', days: null },
+    /* ── Constants ─────────────────────────────────────────────── */
+
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+    const RANGES = [
+      { key: '1w',  label: '1W',  days: 7 },
+      { key: '1m',  label: '1M',  days: 31 },
+      { key: '6m',  label: '6M',  days: 183 },
+      { key: '1y',  label: '1Y',  days: 365 },
+      { key: '3y',  label: '3Y',  days: 365 * 3 },
+      { key: '5y',  label: '5Y',  days: 365 * 5 },
+      { key: 'max', label: 'Max', days: null },
     ];
+
     const PAIRS = [
-      { key: 'brent_wti', label: 'Brent − WTI Spot', dataset: 'daily', left: 'brent', right: 'wti' },
-      { key: 'brent_dubai', label: 'Brent − Dubai (Mo. Avg)', dataset: 'monthly', left: 'brent', right: 'dubai' },
-      { key: 'wti_dubai', label: 'WTI − Dubai (Mo. Avg)', dataset: 'monthly', left: 'wti', right: 'dubai' },
+      { key: 'brent_wti',   label: 'Brent − WTI',   tabLabel: 'Brent − WTI',   dataset: 'daily',   left: 'brent', right: 'wti' },
+      { key: 'brent_dubai', label: 'Brent − Dubai',  tabLabel: 'Brent − Dubai',  dataset: 'monthly', left: 'brent', right: 'dubai' },
+      { key: 'wti_dubai',   label: 'WTI − Dubai',    tabLabel: 'WTI − Dubai',    dataset: 'monthly', left: 'wti',   right: 'dubai' },
     ];
+
     const SERIES_COLORS = {
       spread: '#1b6878',
-      movingAverage: '#b76a22',
+      ma: '#b76a22',
       wti: '#5d7d45',
       brent: '#8a543f',
       dubai: '#6b5aa6',
     };
+
+    const TENOR_COLORS = {
+      '1m': '#5ca3b0', '2m': '#7b8fc0', '3m': '#9a7ab8',
+      '6m': '#c07a8a', '12m': '#c09a5a', '24m': '#7aaa6a',
+    };
+
+    const TENOR_LABELS = {
+      '1m': '1m', '2m': '2m', '3m': '3m',
+      '6m': '6m', '12m': '12m', '24m': '24m',
+    };
+
+    /* ── State ─────────────────────────────────────────────────── */
+
     const state = {
       pairKey: 'brent_wti',
-      horizonKey: '10y',
-      seriesVisibility: {
-        spread: true,
+      rangeKey: '1y',
+      overlays: {
         ma: true,
-        wti: false,
-        brent: false,
-        dubai: false,
+        wti: false, brent: false, dubai: false,
+        '1m': true, '2m': false, '3m': false,
+        '6m': false, '12m': false, '24m': false,
       },
     };
 
-    function isCompactViewport() {
-      return window.matchMedia('(max-width: 760px)').matches;
+    /* ── Utilities ─────────────────────────────────────────────── */
+
+    function isCompact() { return window.matchMedia('(max-width: 760px)').matches; }
+    function getPair(key) { return PAIRS.find(p => p.key === key) ?? PAIRS[0]; }
+    function getRange(key) { return RANGES.find(r => r.key === key) ?? RANGES[0]; }
+
+    function dateToUtc(v) {
+      const [y, m, d] = v.split('-').map(Number);
+      return Date.UTC(y, m - 1, d);
     }
 
-    function getPair(key) {
-      return PAIRS.find(item => item.key === key) ?? PAIRS[0];
+    function parseFuturesTs(ts) {
+      const parts = ts.split(' ');
+      const [y, m, d] = parts[0].split('-').map(Number);
+      if (parts.length > 1) { const [h, min] = parts[1].split(':').map(Number); return Date.UTC(y, m - 1, d, h, min); }
+      return Date.UTC(y, m - 1, d);
     }
 
-    function getBenchmarkLabel(key, pair) {
-      const base = window.BENCHMARK_DATA.benchmarkLabels[key] ?? key;
-      if (!pair) return base;
-      // Daily pair: WTI & Brent are spot, Dubai is monthly avg
-      if (pair.dataset === 'daily') {
-        return key === 'dubai' ? `${base} (Mo. Avg)` : `${base} Spot`;
-      }
-      // Monthly pair: everything is monthly avg
-      return `${base} (Mo. Avg)`;
+    function fmtDate(s) {
+      const [y, m, d] = s.split('-');
+      return `${monthNames[Number(m) - 1]} ${Number(d)}, ${y}`;
     }
 
-    function getMaLabel(pair) {
-      return pair.dataset === 'monthly' ? '12m MA' : '20d MA';
+    function getMaLabel(pair) { return pair.dataset === 'monthly' ? '12m MA' : '20d MA'; }
+
+    function getBenchmarkLabel(key) {
+      return window.BENCHMARK_DATA.benchmarkLabels[key] ?? key;
     }
 
-    function getTooltipDate(value, pair) {
-      const [year, month, day] = value.split('-');
-      if (pair.dataset === 'monthly') {
-        return `${monthNames[Number(month) - 1]} ${year}`;
-      }
-      return `${monthNames[Number(month) - 1]} ${Number(day)}, ${year}`;
+    function getAvailableBenchmarks(pair) {
+      if (pair.dataset === 'daily') return ['wti', 'brent'];
+      return window.BENCHMARK_DATA[pair.dataset].columns;
     }
 
-    function formatAxisTick(dateValue, totalPoints, compact, pair) {
-      const [year, month, day] = dateValue.split('-');
-      const monthLabel = monthNames[Number(month) - 1];
+    /* ── Data helpers ──────────────────────────────────────────── */
 
-      if (pair.dataset === 'monthly') {
-        if (totalPoints > 180) return year;
-        if (totalPoints > 60) return compact ? [monthLabel, year] : `${monthLabel} ${year}`;
-        return compact ? [monthLabel, year] : `${monthLabel} ${year}`;
-      }
-
-      if (totalPoints > 5200) return year;
-      if (totalPoints > 1200) return compact ? [monthLabel, year] : `${monthLabel} ${year}`;
-      if (totalPoints > 260) return compact ? [monthLabel, year] : `${monthLabel} ${year}`;
-      return `${monthLabel} ${Number(day)}`;
-    }
-
-    function getHorizon(key) {
-      return HORIZONS.find(item => item.key === key) ?? HORIZONS[0];
-    }
-
-    function dateToUtc(value) {
-      const [year, month, day] = value.split('-').map(Number);
-      return Date.UTC(year, month - 1, day);
-    }
-
-    function filterRowsByHorizon(rows, key, anchorDate = null) {
-      const horizon = getHorizon(key);
-      if (horizon.days === null || rows.length === 0) return rows.slice();
-
-      const latestTime = dateToUtc(anchorDate ?? rows[rows.length - 1].date);
-      const cutoff = latestTime - (horizon.days * 24 * 60 * 60 * 1000);
-      return rows.filter(row => dateToUtc(row.date) >= cutoff);
-    }
-
-    function movingAverage(values, windowSize) {
-      return values.map((_, index) => {
-        if (index < windowSize - 1) return null;
-        let sum = 0;
-        for (let cursor = index - windowSize + 1; cursor <= index; cursor += 1) {
-          sum += values[cursor];
-        }
-        return +(sum / windowSize).toFixed(2);
-      });
-    }
-
-    function buildRowsForDataset(datasetKey) {
-      const dataset = window.BENCHMARK_DATA[datasetKey];
-      if (!dataset) {
-        throw new Error(`Missing dataset for ${datasetKey}`);
-      }
-
-      return dataset.rows.map(rawRow => {
-        const row = { date: rawRow[0] };
-        dataset.columns.forEach((column, index) => {
-          row[column] = rawRow[index + 1];
-        });
+    function buildRowsForDataset(key) {
+      const ds = window.BENCHMARK_DATA[key];
+      if (!ds) throw new Error(`Missing dataset: ${key}`);
+      return ds.rows.map(raw => {
+        const row = { date: raw[0] };
+        ds.columns.forEach((col, i) => { row[col] = raw[i + 1]; });
         return row;
       });
     }
 
     function buildRowsForPair(pair) {
-      const dataset = window.BENCHMARK_DATA[pair.dataset];
-      if (!dataset) {
-        throw new Error(`Missing dataset for ${pair.dataset}`);
-      }
-
-      return buildRowsForDataset(pair.dataset).filter(row => row[pair.left] !== null && row[pair.right] !== null);
+      return buildRowsForDataset(pair.dataset)
+        .filter(row => row[pair.left] !== null && row[pair.right] !== null);
     }
 
-    function getAvailableBenchmarks(pair) {
-      if (pair.dataset === 'daily') {
-        return ['wti', 'brent', 'dubai'];
-      }
-      return window.BENCHMARK_DATA[pair.dataset].columns;
+    function filterByRange(rows, key, anchorDate = null) {
+      const range = getRange(key);
+      if (range.days === null || rows.length === 0) return rows.slice();
+      const latest = dateToUtc(anchorDate ?? rows[rows.length - 1].date);
+      const cutoff = latest - range.days * 86400000;
+      return rows.filter(row => dateToUtc(row.date) >= cutoff);
     }
 
-    function getSelectedSeriesCount() {
-      return Object.values(state.seriesVisibility).filter(Boolean).length;
+    function movingAverage(values, win) {
+      return values.map((_, i) => {
+        if (i < win - 1) return null;
+        let sum = 0;
+        for (let j = i - win + 1; j <= i; j++) sum += values[j];
+        return +(sum / win).toFixed(2);
+      });
     }
+
+    /* ── Pair tabs ─────────────────────────────────────────────── */
+
+    function renderPairTabs() {
+      document.getElementById('pairTabs').innerHTML = PAIRS.map(p => `
+        <button class="pair-tab ${state.pairKey === p.key ? 'active' : ''}" data-pair="${p.key}">${p.tabLabel}</button>
+      `).join('');
+
+      document.querySelectorAll('[data-pair]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          state.pairKey = btn.dataset.pair;
+          renderAll();
+        });
+      });
+    }
+
+    /* ── Toolbar ───────────────────────────────────────────────── */
 
     function renderToolbar() {
-      const currentPair = getPair(state.pairKey);
-      const availableBenchmarks = new Set(getAvailableBenchmarks(currentPair));
-      const selectedSeriesCount = getSelectedSeriesCount();
+      const pair = getPair(state.pairKey);
+      const benchmarks = getAvailableBenchmarks(pair);
+      const hasFutures = state.pairKey === 'brent_wti' && window.FUTURES_DATA;
 
-      document.getElementById('pairControls').innerHTML = `
-        <span class="toolbar-label">Spread</span>
-        ${PAIRS.map(pair => `
-          <button class="chip ${state.pairKey === pair.key ? 'active' : ''}" data-pair="${pair.key}">
-            ${pair.label}
-          </button>
+      // Spot row: MA + benchmark spot prices
+      const spotChips = [];
+      spotChips.push(chipHtml('ma', getMaLabel(pair), SERIES_COLORS.ma));
+      for (const k of benchmarks) {
+        spotChips.push(chipHtml(k, getBenchmarkLabel(k), SERIES_COLORS[k]));
+      }
+      document.getElementById('spotControls').innerHTML = `
+        <span class="toolbar-label">Spot</span>
+        ${spotChips.join('')}
+      `;
+
+      // Futures row (Brent-WTI only)
+      const futuresEl = document.getElementById('futuresControls');
+      if (hasFutures) {
+        const futuresChips = window.FUTURES_DATA.tenors.map(t =>
+          chipHtml(t, TENOR_LABELS[t], TENOR_COLORS[t])
+        ).join('');
+        futuresEl.innerHTML = `
+          <span class="toolbar-label">Futures</span>
+          ${futuresChips}
+        `;
+        futuresEl.style.display = '';
+      } else {
+        futuresEl.innerHTML = '';
+        futuresEl.style.display = 'none';
+      }
+
+      // Range row
+      document.getElementById('rangeControls').innerHTML = `
+        <span class="toolbar-label">Range</span>
+        ${RANGES.map(r => `
+          <button class="chip ${state.rangeKey === r.key ? 'active' : ''}" data-range="${r.key}">${r.label}</button>
         `).join('')}
       `;
 
-      document.getElementById('seriesControls').innerHTML = `
-        <span class="toolbar-label">Lines</span>
-        <button
-          class="chip ${state.seriesVisibility.spread ? 'active' : ''}"
-          data-series="spread"
-          ${state.seriesVisibility.spread && selectedSeriesCount === 1 ? 'disabled' : ''}
-        >${currentPair.label}</button>
-        <button
-          class="chip ${state.seriesVisibility.ma ? 'active' : ''}"
-          data-series="ma"
-          ${state.seriesVisibility.ma && selectedSeriesCount === 1 ? 'disabled' : ''}
-        >${getMaLabel(currentPair)}</button>
-        ${['wti', 'brent', 'dubai'].map(key => `
-          <button
-            class="chip ${state.seriesVisibility[key] && availableBenchmarks.has(key) ? 'active' : ''}"
-            data-series="${key}"
-            ${state.seriesVisibility[key] && selectedSeriesCount === 1 ? 'disabled' : ''}
-          >
-            ${getBenchmarkLabel(key, currentPair)}
-          </button>
-        `).join('')}
-      `;
-
-      document.getElementById('horizonControls').innerHTML = `
-        <span class="toolbar-label">View</span>
-        ${HORIZONS.map(horizon => `
-          <button class="chip ${state.horizonKey === horizon.key ? 'active' : ''}" data-horizon="${horizon.key}">
-            ${horizon.label}
-          </button>
-        `).join('')}
-      `;
-
-      document.querySelectorAll('[data-pair]').forEach(button => {
-        button.addEventListener('click', () => {
-          state.pairKey = button.dataset.pair;
-          renderToolbar();
-          renderCallout();
-          renderFooter();
-          rebuildChart();
+      // Listeners
+      document.querySelectorAll('[data-overlay]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const k = btn.dataset.overlay;
+          state.overlays[k] = !state.overlays[k];
+          renderToolbar(); renderLegend(); rebuildChart();
         });
       });
 
-      document.querySelectorAll('[data-series]').forEach(button => {
-        button.addEventListener('click', () => {
-          const key = button.dataset.series;
-          if (state.seriesVisibility[key] && getSelectedSeriesCount() === 1) {
-            return;
-          }
-          state.seriesVisibility[key] = !state.seriesVisibility[key];
-          renderToolbar();
-          rebuildChart();
-        });
-      });
-
-      document.querySelectorAll('[data-horizon]').forEach(button => {
-        button.addEventListener('click', () => {
-          state.horizonKey = button.dataset.horizon;
-          renderToolbar();
-          rebuildChart();
+      document.querySelectorAll('[data-range]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          state.rangeKey = btn.dataset.range;
+          renderToolbar(); renderStats(); rebuildChart();
         });
       });
     }
+
+    function chipHtml(key, label, color) {
+      const active = state.overlays[key] ? 'active' : '';
+      return `<button class="chip ${active}" data-overlay="${key}"
+        style="--chip-color: ${color}; --chip-bg: ${color}20">${label}</button>`;
+    }
+
+    /* ── Legend ─────────────────────────────────────────────────── */
+
+    function renderLegend() {
+      const pair = getPair(state.pairKey);
+      const items = [];
+
+      // Spread is always shown
+      items.push(legendItem('Spread', SERIES_COLORS.spread));
+
+      if (state.overlays.ma) items.push(legendItem(getMaLabel(pair), SERIES_COLORS.ma));
+
+      for (const k of getAvailableBenchmarks(pair)) {
+        if (state.overlays[k]) items.push(legendItem(getBenchmarkLabel(k), SERIES_COLORS[k]));
+      }
+
+      if (state.pairKey === 'brent_wti' && window.FUTURES_DATA) {
+        for (const t of window.FUTURES_DATA.tenors) {
+          if (state.overlays[t]) items.push(legendItem(`${TENOR_LABELS[t]} Futures`, TENOR_COLORS[t]));
+        }
+      }
+
+      document.getElementById('legend').innerHTML = items.join('');
+    }
+
+    function legendItem(label, color) {
+      return `<span class="legend-item"><span class="legend-dot" style="background:${color}"></span>${label}</span>`;
+    }
+
+    /* ── Callout ───────────────────────────────────────────────── */
 
     function renderCallout() {
       const pair = getPair(state.pairKey);
       const rows = buildRowsForPair(pair);
-      if (rows.length < 2) {
-        document.getElementById('callout').innerHTML = '';
-        return;
-      }
+      if (rows.length < 2) { document.getElementById('callout').innerHTML = ''; return; }
 
       const latest = rows[rows.length - 1];
       const previous = rows[rows.length - 2];
       const spread = +(latest[pair.left] - latest[pair.right]).toFixed(2);
-      const prevSpread = +(previous[pair.left] - previous[pair.right]).toFixed(2);
-      const change = +(spread - prevSpread).toFixed(2);
+      const prev = +(previous[pair.left] - previous[pair.right]).toFixed(2);
+      const change = +(spread - prev).toFixed(2);
       const sign = change >= 0 ? '+' : '';
-      const isPositive = spread >= 0;
-      const changeDir = change >= 0 ? 'up' : 'down';
+      const dir = change >= 0 ? 'up' : 'down';
 
       const dateLabel = pair.dataset === 'monthly'
         ? (() => { const [y, m] = latest.date.split('-'); return `${monthNames[Number(m) - 1]} ${y}`; })()
-        : (() => { const [y, m, d] = latest.date.split('-'); return `${monthNames[Number(m) - 1]} ${Number(d)}, ${y}`; })();
+        : fmtDate(latest.date);
 
       document.getElementById('callout').innerHTML = `
-        <span class="callout-value ${isPositive ? 'positive' : 'negative'}">$${spread.toFixed(2)}</span>
+        <span class="callout-value ${spread >= 0 ? 'positive' : 'negative'}">$${spread.toFixed(2)}</span>
         <span class="callout-meta">
-          <span class="callout-change ${changeDir}">${sign}${change.toFixed(2)}</span>
+          <span class="callout-change ${dir}">${sign}${change.toFixed(2)}</span>
           &middot; ${dateLabel}
         </span>
       `;
     }
 
-    function renderFooter() {
-      const pair = getPair(state.pairKey);
-      const rows = buildRowsForPair(pair);
-      const lastDate = rows.length ? rows[rows.length - 1].date : '—';
+    /* ── Stats row ─────────────────────────────────────────────── */
 
+    function renderStats() {
+      const pair = getPair(state.pairKey);
+      const rows = filterByRange(buildRowsForPair(pair), state.rangeKey);
+      if (rows.length === 0) { document.getElementById('statsRow').innerHTML = ''; return; }
+
+      const spreads = rows.map(r => +(r[pair.left] - r[pair.right]).toFixed(2));
+      const high = Math.max(...spreads);
+      const low = Math.min(...spreads);
+      const avg = +(spreads.reduce((a, b) => a + b, 0) / spreads.length).toFixed(2);
+
+      const rangeLabel = getRange(state.rangeKey).label;
+
+      document.getElementById('statsRow').innerHTML = `
+        <span class="stat-item"><span class="stat-label">${rangeLabel} High</span> <span class="stat-val">$${high.toFixed(2)}</span></span>
+        <span class="stat-item"><span class="stat-label">Low</span> <span class="stat-val">$${low.toFixed(2)}</span></span>
+        <span class="stat-item"><span class="stat-label">Avg</span> <span class="stat-val">$${avg.toFixed(2)}</span></span>
+      `;
+    }
+
+    /* ── Footer ────────────────────────────────────────────────── */
+
+    function renderFooter() {
+      const rows = buildRowsForPair(getPair(state.pairKey));
+      const lastDate = rows.length ? rows[rows.length - 1].date : '—';
       document.getElementById('siteFooter').innerHTML = `
         Spot data from <a href="https://fred.stlouisfed.org/" target="_blank" rel="noopener">FRED</a>
         (Federal Reserve Bank of St. Louis).
@@ -648,499 +699,447 @@
       `;
     }
 
-    function resetCanvasSize() {
-      const canvas = document.getElementById('chart');
-      canvas.removeAttribute('width');
-      canvas.removeAttribute('height');
-      canvas.style.width = '';
-      canvas.style.height = '';
+    /* ── Crosshair plugin ──────────────────────────────────────── */
+
+    const crosshairPlugin = {
+      id: 'crosshairLine',
+      afterDraw(chart) {
+        if (chart._crosshairX == null) return;
+        const { ctx, chartArea: { top, bottom } } = chart;
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(chart._crosshairX, top);
+        ctx.lineTo(chart._crosshairX, bottom);
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = 'rgba(72, 58, 43, 0.25)';
+        ctx.setLineDash([4, 3]);
+        ctx.stroke();
+        ctx.restore();
+      },
+    };
+
+    Chart.register(crosshairPlugin);
+
+    /* ── Custom tooltip ───────────────────────────────────────── */
+
+    function findNearestInChart(chartInstance, hoveredX) {
+      const lines = [];
+      if (!chartInstance) return lines;
+      const maxGapMs = 7 * 86400000;
+
+      for (let i = 0; i < chartInstance.data.datasets.length; i++) {
+        const ds = chartInstance.data.datasets[i];
+        const meta = chartInstance.getDatasetMeta(i);
+        if (meta.hidden || ds.hidden) continue;
+
+        const data = ds.data.filter(p => p !== null && p !== undefined);
+        if (data.length === 0) continue;
+
+        let nearest = null;
+        let bestDist = Infinity;
+        for (let j = 0; j < data.length; j++) {
+          const px = typeof data[j] === 'object' ? data[j].x : j;
+          const dist = Math.abs(px - hoveredX);
+          if (dist < bestDist) { bestDist = dist; nearest = data[j]; }
+        }
+
+        if (nearest && bestDist <= maxGapMs) {
+          const val = typeof nearest === 'object' ? nearest.y : nearest;
+          if (val !== null && val !== undefined) {
+            lines.push({ label: ds.label, val, color: ds.borderColor });
+          }
+        }
+      }
+      return lines;
+    }
+
+    function buildCrosshairTooltip(context, pair) {
+      const { chart: hoverChart, tooltip } = context;
+      let tooltipEl = document.getElementById('chartTooltip');
+
+      if (!tooltipEl) {
+        tooltipEl = document.createElement('div');
+        tooltipEl.id = 'chartTooltip';
+        document.body.appendChild(tooltipEl);
+      }
+
+      // Also sync crosshair on the other chart
+      const otherChart = (hoverChart === chart) ? spotChartInstance : chart;
+
+      if (tooltip.opacity === 0) {
+        tooltipEl.style.opacity = '0';
+        hoverChart._crosshairX = null;
+        if (otherChart) { otherChart._crosshairX = null; otherChart.draw(); }
+        hoverChart.draw();
+        return;
+      }
+
+      const hoveredX = tooltip.dataPoints?.[0]?.parsed?.x;
+      if (hoveredX == null) { tooltipEl.style.opacity = '0'; return; }
+
+      // Set crosshair on hovered chart
+      hoverChart._crosshairX = tooltip.caretX;
+
+      // Set crosshair on the other chart at the same x value
+      if (otherChart && otherChart.chartArea) {
+        const xScale = otherChart.scales.x;
+        if (xScale) {
+          otherChart._crosshairX = xScale.getPixelForValue(hoveredX);
+          otherChart.draw();
+        }
+      }
+
+      // Gather lines from BOTH charts
+      const allLines = [
+        ...findNearestInChart(spotChartInstance, hoveredX),
+        ...findNearestInChart(chart, hoveredX),
+      ];
+
+      const d = new Date(hoveredX);
+      const mo = monthNames[d.getUTCMonth()];
+      const dy = d.getUTCDate();
+      const yr = d.getUTCFullYear();
+      const title = pair.dataset === 'monthly' ? `${mo} ${yr}` : `${mo} ${dy}, ${yr}`;
+
+      const html = allLines.map(l =>
+        `<div class="tt-line"><span class="tt-dot" style="background:${l.color}"></span>${l.label}: <strong>$${l.val.toFixed(2)}</strong></div>`
+      ).join('');
+
+      tooltipEl.innerHTML = `<div class="tt-title">${title}</div>${html}`;
+      tooltipEl.style.opacity = '1';
+
+      // Position near the spread chart (the larger one)
+      const pos = (chart ?? hoverChart).canvas.getBoundingClientRect();
+      const left = pos.left + window.scrollX + tooltip.caretX;
+      const top = pos.top + window.scrollY + (chart ?? hoverChart).chartArea.top;
+
+      tooltipEl.style.left = left + 12 + 'px';
+      tooltipEl.style.top = top + 'px';
+
+      const rect = tooltipEl.getBoundingClientRect();
+      if (rect.right > window.innerWidth - 10) {
+        tooltipEl.style.left = (left - rect.width - 12) + 'px';
+      }
+
+      hoverChart.draw();
+    }
+
+    /* ── Main chart ────────────────────────────────────────────── */
+
+    let chart = null;
+    let spotChartInstance = null;
+
+    function resetCanvas(id) {
+      const c = document.getElementById(id);
+      c.removeAttribute('width'); c.removeAttribute('height');
+      c.style.width = ''; c.style.height = '';
     }
 
     function rebuildChart() {
-      if (chart) {
-        chart.destroy();
-      }
-      resetCanvasSize();
-      chart = buildChart();
+      if (chart) chart.destroy();
+      if (spotChartInstance) spotChartInstance.destroy();
+      resetCanvas('chart');
+      resetCanvas('spotChart');
+      const result = buildChart();
+      chart = result.spreadChart;
+      spotChartInstance = result.spotChart;
     }
 
     function buildChart() {
-      if (!window.BENCHMARK_DATA) {
-        throw new Error('BENCHMARK_DATA is missing');
-      }
+      if (!window.BENCHMARK_DATA) throw new Error('BENCHMARK_DATA is missing');
 
       const pair = getPair(state.pairKey);
-      const compact = isCompactViewport();
-      const averageWindow = pair.dataset === 'monthly' ? 12 : 20;
+      const compact = isCompact();
+      const avgWin = pair.dataset === 'monthly' ? 12 : 20;
       const benchmarkKeys = getAvailableBenchmarks(pair);
+
       let labels = [];
       let spreadValues = [];
       let averageValues = [];
-      let benchmarkSeriesByKey = {};
+      let benchmarkSeries = {};
 
       if (pair.dataset === 'daily') {
         const pairRows = buildRowsForPair(pair);
-        const anchorDate = pairRows[pairRows.length - 1]?.date ?? null;
-        const dailyRows = filterRowsByHorizon(pairRows, state.horizonKey, anchorDate);
-        const dailySpreadValues = dailyRows.map(row => +(row[pair.left] - row[pair.right]).toFixed(2));
-        const dailyAverageValues = movingAverage(dailySpreadValues, averageWindow);
-        const monthlyRows = filterRowsByHorizon(
-          buildRowsForDataset('monthly').filter(row => row.dubai !== null),
-          state.horizonKey,
-          anchorDate
-        );
+        const anchor = pairRows[pairRows.length - 1]?.date ?? null;
+        const dailyRows = filterByRange(pairRows, state.rangeKey, anchor);
+        const dailySpreads = dailyRows.map(r => +(r[pair.left] - r[pair.right]).toFixed(2));
+        const dailyMa = movingAverage(dailySpreads, avgWin);
 
-        const labelSet = new Set(dailyRows.map(row => row.date));
-        if (state.seriesVisibility.dubai) {
-          monthlyRows.forEach(row => labelSet.add(row.date));
-        }
-        labels = Array.from(labelSet).sort((left, right) => dateToUtc(left) - dateToUtc(right));
-
-        const spreadByDate = new Map(dailyRows.map((row, index) => [row.date, dailySpreadValues[index]]));
-        const averageByDate = new Map(dailyRows.map((row, index) => [row.date, dailyAverageValues[index]]));
-        const wtiByDate = new Map(dailyRows.map(row => [row.date, row.wti]));
-        const brentByDate = new Map(dailyRows.map(row => [row.date, row.brent]));
-        const dubaiByDate = new Map(monthlyRows.map(row => [row.date, row.dubai]));
-
-        spreadValues = labels.map(date => spreadByDate.get(date) ?? null);
-        averageValues = labels.map(date => averageByDate.get(date) ?? null);
-        benchmarkSeriesByKey = {
-          wti: labels.map(date => wtiByDate.get(date) ?? null),
-          brent: labels.map(date => brentByDate.get(date) ?? null),
-          dubai: labels.map(date => dubaiByDate.get(date) ?? null),
+        labels = dailyRows.map(r => r.date);
+        spreadValues = dailySpreads;
+        averageValues = dailyMa;
+        benchmarkSeries = {
+          wti: dailyRows.map(r => r.wti),
+          brent: dailyRows.map(r => r.brent),
         };
       } else {
-        const rows = filterRowsByHorizon(buildRowsForPair(pair), state.horizonKey);
-        labels = rows.map(row => row.date);
-        spreadValues = rows.map(row => +(row[pair.left] - row[pair.right]).toFixed(2));
-        averageValues = movingAverage(spreadValues, averageWindow);
-        benchmarkSeriesByKey = Object.fromEntries(
-          benchmarkKeys.map(key => [key, rows.map(row => row[key] ?? null)])
+        const rows = filterByRange(buildRowsForPair(pair), state.rangeKey);
+        labels = rows.map(r => r.date);
+        spreadValues = rows.map(r => +(r[pair.left] - r[pair.right]).toFixed(2));
+        averageValues = movingAverage(spreadValues, avgWin);
+        benchmarkSeries = Object.fromEntries(
+          benchmarkKeys.map(k => [k, rows.map(r => r[k] ?? null)])
         );
       }
 
-      const useLineSpread = pair.dataset === 'monthly' || labels.length > 1200;
-      const benchmarkDatasets = benchmarkKeys.map(key => ({
-        label: getBenchmarkLabel(key, pair),
-        data: benchmarkSeriesByKey[key],
-        type: 'line',
-        borderColor: SERIES_COLORS[key],
-        backgroundColor: 'transparent',
-        borderWidth: 1.7,
-        pointRadius: 0,
-        pointHitRadius: 6,
-        tension: 0.12,
-        spanGaps: true,
-        hidden: !state.seriesVisibility[key],
-        yAxisID: 'y2',
-        order: 0,
-      }));
+      // Convert to {x, y} for time scale
+      const spreadPoints = spreadValues.map((v, i) => v === null ? null : { x: dateToUtc(labels[i]), y: v });
+      const maPoints = averageValues.map((v, i) => v === null ? null : { x: dateToUtc(labels[i]), y: v }).filter(Boolean);
 
-      return new Chart(document.getElementById('chart').getContext('2d'), {
-        type: useLineSpread ? 'line' : 'bar',
-        data: {
-          labels,
-          datasets: [
-            useLineSpread
-              ? {
-                  label: pair.label,
-                  data: spreadValues,
-                  type: 'line',
-                  borderColor: SERIES_COLORS.spread,
-                  backgroundColor: 'rgba(27, 104, 120, 0.16)',
-                  fill: true,
-                  borderWidth: 2.2,
-                  pointRadius: 0,
-                  pointHitRadius: 6,
-                  tension: 0.14,
-                  spanGaps: true,
-                  hidden: !state.seriesVisibility.spread,
-                  yAxisID: 'y',
-                  order: 2,
-                }
-              : {
-                  label: pair.label,
-                  data: spreadValues,
-                  type: 'bar',
-                  backgroundColor: spreadValues.map(value => value === null ? 'rgba(0, 0, 0, 0)' : (value >= 0 ? 'rgba(50, 105, 86, 0.46)' : 'rgba(164, 75, 54, 0.46)')),
-                  borderColor: spreadValues.map(value => value === null ? 'rgba(0, 0, 0, 0)' : (value >= 0 ? 'rgba(50, 105, 86, 0.86)' : 'rgba(164, 75, 54, 0.86)')),
-                  borderWidth: 1,
-                  hidden: !state.seriesVisibility.spread,
-                  yAxisID: 'y',
-                  order: 2,
-                },
-            {
-              label: getMaLabel(pair),
-              data: averageValues,
-              type: 'line',
-              borderColor: SERIES_COLORS.movingAverage,
-              backgroundColor: 'transparent',
-              borderWidth: 1.8,
-              pointRadius: 0,
-              pointHitRadius: 6,
-              tension: 0.2,
-              spanGaps: true,
-              hidden: !state.seriesVisibility.ma,
-              yAxisID: 'y',
-              order: 1,
-            },
-            ...benchmarkDatasets,
-          ],
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          interaction: {
-            mode: 'index',
-            intersect: false,
-          },
-          plugins: {
-            legend: {
-              display: false,
-            },
-            annotation: {
-              annotations: {
-                zeroLine: {
-                  type: 'line',
-                  yMin: 0,
-                  yMax: 0,
-                  borderColor: 'rgba(72, 58, 43, 0.22)',
-                  borderWidth: 1,
-                  borderDash: [4, 3],
-                  drawTime: 'beforeDatasetsDraw',
-                },
-              },
-            },
-            tooltip: {
-              backgroundColor: '#fff7eb',
-              borderColor: 'rgba(72, 58, 43, 0.18)',
-              borderWidth: 1,
-              titleColor: '#17120d',
-              bodyColor: '#30261d',
-              padding: 12,
-              displayColors: false,
-              callbacks: {
-                title(items) {
-                  return items.length ? getTooltipDate(items[0].label, pair) : '';
-                },
-                label(context) {
-                  return context.parsed.y === null
-                    ? `${context.dataset.label}: —`
-                    : `${context.dataset.label}: $${context.parsed.y.toFixed(2)}`;
-                },
-              },
-            },
-          },
-          scales: {
-            x: {
-              ticks: {
-                color: '#6f6153',
-                maxRotation: 0,
-                autoSkip: true,
-                maxTicksLimit: compact ? 6 : 12,
-                padding: compact ? 10 : 8,
-                callback(value) {
-                  return formatAxisTick(this.getLabelForValue(value), labels.length, compact, pair);
-                },
-              },
-              grid: {
-                color: 'rgba(72, 58, 43, 0)',
-              },
-            },
-            y: {
-              ticks: {
-                color: '#6f6153',
-                callback(value) {
-                  return `$${value.toFixed(1)}`;
-                },
-              },
-              grid: {
-                color: 'rgba(72, 58, 43, 0.08)',
-              },
-            },
-            y2: {
-              display: benchmarkKeys.some(key => state.seriesVisibility[key]),
-              position: 'right',
-              ticks: {
-                color: '#6f6153',
-                callback(value) {
-                  return `$${value}`;
-                },
-              },
-              grid: {
-                drawOnChartArea: false,
-              },
-            },
-          },
-        },
-      });
-    }
+      const validSpread = spreadPoints.filter(Boolean);
+      const chartMin = validSpread.length > 0 ? validSpread[0].x : undefined;
+      const chartMax = validSpread.length > 0 ? validSpread[validSpread.length - 1].x : undefined;
 
-    let chart = null;
-    renderToolbar();
-    renderCallout();
-    renderFooter();
-    rebuildChart();
-    let lastCompactViewport = isCompactViewport();
-    let resizeFrame = null;
+      // Futures tenor datasets (on spread chart)
+      const futuresDatasets = [];
+      if (state.pairKey === 'brent_wti' && window.FUTURES_DATA && chartMin !== undefined) {
+        for (const tenor of window.FUTURES_DATA.tenors) {
+          if (!state.overlays[tenor]) continue;
+          const fData = window.FUTURES_DATA[tenor];
+          if (!fData || fData.rows.length === 0) continue;
 
-    window.addEventListener('resize', () => {
-      if (resizeFrame !== null) {
-        cancelAnimationFrame(resizeFrame);
-      }
-      resizeFrame = requestAnimationFrame(() => {
-        resizeFrame = null;
-        const compact = isCompactViewport();
-        if (compact !== lastCompactViewport) {
-          lastCompactViewport = compact;
-          rebuildChart();
-          rebuildFuturesCharts();
-          return;
+          const points = fData.rows
+            .map(r => ({ x: parseFuturesTs(r[0]), y: r[1] }))
+            .filter(p => p.x >= chartMin && p.x <= chartMax);
+
+          if (points.length === 0) continue;
+
+          futuresDatasets.push({
+            label: `${TENOR_LABELS[tenor]} Futures`,
+            data: points,
+            borderColor: TENOR_COLORS[tenor],
+            backgroundColor: 'transparent',
+            borderWidth: 1.5,
+            pointRadius: 0, pointHitRadius: 6,
+            tension: 0.14, spanGaps: false,
+            yAxisID: 'y', order: 3,
+          });
         }
-        chart.resize();
-        futuresCharts.forEach(fc => { if (fc) fc.resize(); });
-      });
-    });
-
-    /* ── Futures charts ─────────────────────────────────────── */
-
-    const FUTURES_HORIZONS = [
-      { key: '1m', label: '1M', days: 31 },
-      { key: '6m', label: '6M', days: 183 },
-      { key: '1y', label: '1Y', days: 365 },
-      { key: '3y', label: '3Y', days: 365 * 3 },
-      { key: '5y', label: '5Y', days: 365 * 5 },
-      { key: 'max', label: 'MAX', days: null },
-    ];
-
-    const TENOR_DISPLAY = {
-      '1m': '1-Month',
-      '2m': '2-Month',
-      '3m': '3-Month',
-      '6m': '6-Month',
-      '12m': '12-Month',
-      '24m': '24-Month',
-    };
-
-    const futuresState = { horizonKey: '3y' };
-    let futuresCharts = [];
-
-    function parseFuturesTimestamp(ts) {
-      // Handles both 'YYYY-MM-DD' and 'YYYY-MM-DD HH:MM'
-      const parts = ts.split(' ');
-      const [year, month, day] = parts[0].split('-').map(Number);
-      if (parts.length > 1) {
-        const [hour, minute] = parts[1].split(':').map(Number);
-        return Date.UTC(year, month - 1, day, hour, minute);
-      }
-      return Date.UTC(year, month - 1, day);
-    }
-
-    function filterFuturesRows(rows, horizonKey) {
-      const horizon = FUTURES_HORIZONS.find(h => h.key === horizonKey) ?? FUTURES_HORIZONS[0];
-      if (horizon.days === null || rows.length === 0) return rows.slice();
-      const latestTime = parseFuturesTimestamp(rows[rows.length - 1][0]);
-      const cutoff = latestTime - (horizon.days * 24 * 60 * 60 * 1000);
-      return rows.filter(row => parseFuturesTimestamp(row[0]) >= cutoff);
-    }
-
-    function formatFuturesTimestamp(ts) {
-      // Returns display string for tooltip: 'Mon DD, YYYY' or 'Mon DD, YYYY HH:MM'
-      const parts = ts.split(' ');
-      const [year, month, day] = parts[0].split('-');
-      const monthLabel = monthNames[Number(month) - 1];
-      const base = `${monthLabel} ${Number(day)}, ${year}`;
-      if (parts.length > 1) return `${base} ${parts[1]}`;
-      return base;
-    }
-
-    function formatFuturesAxisTick(dateValue, totalPoints, compact, spanDays) {
-      const parts = dateValue.split(' ');
-      const datePart = parts[0];
-      const [year, month, day] = datePart.split('-');
-      const monthLabel = monthNames[Number(month) - 1];
-
-      // For very short time spans (< 90 days), always show day-level ticks
-      if (spanDays !== undefined && spanDays < 90) {
-        if (parts.length > 1 && spanDays < 7) {
-          // Intraday-level: show date + time
-          return compact ? [`${monthLabel} ${Number(day)}`, parts[1]] : `${monthLabel} ${Number(day)} ${parts[1]}`;
-        }
-        return `${monthLabel} ${Number(day)}`;
       }
 
-      if (totalPoints > 5000) return year;
-      if (totalPoints > 1200) return compact ? [monthLabel, year] : `${monthLabel} ${year}`;
-      if (totalPoints > 260) return compact ? [monthLabel, year] : `${monthLabel} ${year}`;
-      return `${monthLabel} ${Number(day)}`;
-    }
-
-    function renderFuturesToolbar() {
-      document.getElementById('futuresHorizonControls').innerHTML = `
-        <span class="toolbar-label">View</span>
-        ${FUTURES_HORIZONS.map(h => `
-          <button class="chip ${futuresState.horizonKey === h.key ? 'active' : ''}" data-futures-horizon="${h.key}">
-            ${h.label}
-          </button>
-        `).join('')}
-      `;
-      document.querySelectorAll('[data-futures-horizon]').forEach(button => {
-        button.addEventListener('click', () => {
-          futuresState.horizonKey = button.dataset.futuresHorizon;
-          renderFuturesToolbar();
-          rebuildFuturesCharts();
-        });
-      });
-    }
-
-    function renderFuturesGrid() {
-      if (!window.FUTURES_DATA) return;
-      const grid = document.getElementById('futuresGrid');
-      grid.innerHTML = window.FUTURES_DATA.tenors.map(tenor => `
-        <div class="futures-chart-shell">
-          <div class="futures-header">
-            <h3>
-              <span class="legend-dot spread"></span>
-              <span class="legend-dot ma"></span>
-              ${TENOR_DISPLAY[tenor] ?? tenor}
-            </h3>
-            <div class="futures-header-right" id="futures-meta-${tenor}"></div>
-          </div>
-          <div class="futures-chart-frame" id="futures-frame-${tenor}">
-            <canvas id="futures-${tenor}"></canvas>
-          </div>
-        </div>
-      `).join('');
-    }
-
-    function computeSharedTimeBounds() {
-      // Compute the shared min/max across all tenors after horizon filtering.
-      // All charts will use this window so their x-axes align.
-      if (!window.FUTURES_DATA) return null;
-
-      let globalMin = Infinity;
-      let globalMax = -Infinity;
-
-      for (const tenor of window.FUTURES_DATA.tenors) {
-        const data = window.FUTURES_DATA[tenor];
-        if (!data || data.rows.length === 0) continue;
-        const rows = filterFuturesRows(data.rows, futuresState.horizonKey);
-        if (rows.length === 0) continue;
-        const first = parseFuturesTimestamp(rows[0][0]);
-        const last = parseFuturesTimestamp(rows[rows.length - 1][0]);
-        if (first < globalMin) globalMin = first;
-        if (last > globalMax) globalMax = last;
-      }
-
-      if (globalMin === Infinity) return null;
-      return { min: globalMin, max: globalMax };
-    }
-
-    function fmtShortDate(d) {
-      const [y, m, dy] = d.split('-');
-      return `${monthNames[Number(m) - 1]} ${Number(dy)}, ${y}`;
-    }
-
-    function buildFuturesChart(tenor, timeBounds) {
-      const data = window.FUTURES_DATA[tenor];
-      if (!data || data.rows.length === 0) {
-        const frame = document.getElementById(`futures-frame-${tenor}`);
-        if (frame) {
-          frame.innerHTML = '<div class="futures-empty">Accumulating data…</div>';
-        }
-        const meta = document.getElementById(`futures-meta-${tenor}`);
-        if (meta) meta.innerHTML = '';
-        return null;
-      }
-
-      const compact = isCompactViewport();
-      const rows = filterFuturesRows(data.rows, futuresState.horizonKey);
-
-      // Populate header meta even if rows are empty
-      const metaEl = document.getElementById(`futures-meta-${tenor}`);
-      if (rows.length === 0) {
-        const frame = document.getElementById(`futures-frame-${tenor}`);
-        if (frame) {
-          frame.innerHTML = '<div class="futures-empty">No data for this time range</div>';
-        }
-        if (metaEl) metaEl.innerHTML = '';
-        return null;
-      }
-
-      const latestSpread = rows[rows.length - 1][1];
-      const firstDateRaw = rows[0][0].split(' ')[0];
-      const lastDateRaw = rows[rows.length - 1][0].split(' ')[0];
-      if (metaEl) {
-        metaEl.innerHTML = `
-          <span class="futures-current ${latestSpread >= 0 ? 'positive' : 'negative'}">$${latestSpread.toFixed(2)}</span>
-          <div class="futures-date-range">${fmtShortDate(firstDateRaw)} — ${fmtShortDate(lastDateRaw)}</div>
-        `;
-      }
-
-      // Convert rows to {x: timestamp, y: spread} for time scale
-      const dataPoints = rows.map(r => ({ x: parseFuturesTimestamp(r[0]), y: r[1] }));
-      const spreadValues = rows.map(r => r[1]);
-      const maRaw = movingAverage(spreadValues, 20);
-      const maPoints = maRaw.map((v, i) => v === null ? null : { x: dataPoints[i].x, y: v }).filter(Boolean);
-
-      const spanMs = (timeBounds ? timeBounds.max - timeBounds.min : dataPoints[dataPoints.length - 1].x - dataPoints[0].x);
-      const spanDays = spanMs / (24 * 60 * 60 * 1000);
-
-      // Choose time unit based on span
+      // Time unit
+      const spanMs = labels.length > 1 ? dateToUtc(labels[labels.length - 1]) - dateToUtc(labels[0]) : 0;
+      const spanDays = spanMs / 86400000;
       let timeUnit = 'month';
       if (spanDays < 14) timeUnit = 'day';
       else if (spanDays < 90) timeUnit = 'week';
       else if (spanDays > 365 * 3) timeUnit = 'year';
 
-      const canvas = document.getElementById(`futures-${tenor}`);
-      if (!canvas) return null;
+      const xScaleConfig = {
+        type: 'time',
+        min: chartMin,
+        max: chartMax,
+        time: {
+          unit: timeUnit,
+          displayFormats: { day: 'MMM d', week: 'MMM d', month: 'MMM yyyy', year: 'yyyy' },
+        },
+        ticks: { color: '#6f6153', maxRotation: 0, autoSkip: true, maxTicksLimit: compact ? 6 : 12 },
+        grid: { color: 'rgba(72, 58, 43, 0)' },
+      };
 
-      return new Chart(canvas.getContext('2d'), {
+      // ── Spot price panel ──
+      const showSpot = benchmarkKeys.some(k => state.overlays[k]);
+      const spotPanel = document.getElementById('spotPanel');
+      let spotChart = null;
+
+      if (showSpot) {
+        spotPanel.style.display = '';
+
+        const spotDatasets = benchmarkKeys
+          .filter(k => state.overlays[k])
+          .map(k => ({
+            label: getBenchmarkLabel(k),
+            data: (benchmarkSeries[k] || []).map((v, i) => v === null ? null : { x: dateToUtc(labels[i]), y: v }),
+            borderColor: SERIES_COLORS[k],
+            backgroundColor: 'transparent',
+            borderWidth: 1.7,
+            pointRadius: 0, pointHitRadius: 6,
+            tension: 0.12, spanGaps: true,
+          }));
+
+        spotChart = new Chart(document.getElementById('spotChart').getContext('2d'), {
+          type: 'line',
+          data: { datasets: spotDatasets },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'nearest', axis: 'x', intersect: false },
+            plugins: {
+              legend: { display: false },
+              crosshairLine: {},
+              tooltip: {
+                enabled: false,
+                mode: 'nearest',
+                axis: 'x',
+                intersect: false,
+                external: function(context) {
+                  buildCrosshairTooltip(context, pair);
+                },
+              },
+            },
+            scales: {
+              x: { ...xScaleConfig, ticks: { display: false }, grid: { color: 'rgba(72, 58, 43, 0)' } },
+              y: {
+                ticks: { color: '#6f6153', callback(v) { return `$${v}`; } },
+                grid: { color: 'rgba(72, 58, 43, 0.08)' },
+              },
+            },
+          },
+        });
+      } else {
+        spotPanel.style.display = 'none';
+      }
+
+      // ── Spread chart ──
+      const spreadChart = new Chart(document.getElementById('chart').getContext('2d'), {
         type: 'line',
         data: {
           datasets: [
             {
-              label: `Brent − WTI ${TENOR_DISPLAY[tenor]}`,
-              data: dataPoints,
+              label: pair.label,
+              data: spreadPoints,
               borderColor: SERIES_COLORS.spread,
-              backgroundColor: 'rgba(27, 104, 120, 0.16)',
+              backgroundColor: 'rgba(27, 104, 120, 0.13)',
               fill: true,
-              borderWidth: 1.8,
-              pointRadius: 0,
-              pointHitRadius: 6,
-              tension: 0.14,
-              spanGaps: false,
-              order: 2,
+              borderWidth: 2,
+              pointRadius: 0, pointHitRadius: 6,
+              tension: 0.14, spanGaps: true,
+              yAxisID: 'y', order: 2,
             },
             {
-              label: '20d MA',
+              label: getMaLabel(pair),
               data: maPoints,
-              borderColor: SERIES_COLORS.movingAverage,
+              borderColor: SERIES_COLORS.ma,
               backgroundColor: 'transparent',
-              borderWidth: 1.4,
-              pointRadius: 0,
-              pointHitRadius: 6,
-              tension: 0.2,
-              spanGaps: false,
-              order: 1,
+              borderWidth: 1.8,
+              pointRadius: 0, pointHitRadius: 6,
+              tension: 0.2, spanGaps: true,
+              hidden: !state.overlays.ma,
+              yAxisID: 'y', order: 1,
             },
+            ...futuresDatasets,
           ],
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          interaction: { mode: 'index', intersect: false },
+          interaction: { mode: 'nearest', axis: 'x', intersect: false },
+          plugins: {
+            legend: { display: false },
+            crosshairLine: {},
+            annotation: {
+              annotations: {
+                zeroLine: {
+                  type: 'line', yMin: 0, yMax: 0,
+                  borderColor: 'rgba(72, 58, 43, 0.22)',
+                  borderWidth: 1, borderDash: [4, 3],
+                  drawTime: 'beforeDatasetsDraw',
+                },
+              },
+            },
+            tooltip: {
+              enabled: false,
+              mode: 'nearest',
+              axis: 'x',
+              intersect: false,
+              external: function(context) {
+                buildCrosshairTooltip(context, pair);
+              },
+            },
+          },
+          scales: {
+            x: xScaleConfig,
+            y: {
+              ticks: { color: '#6f6153', callback(v) { return `$${v.toFixed(1)}`; } },
+              grid: { color: 'rgba(72, 58, 43, 0.08)' },
+            },
+          },
+        },
+      });
+
+      return { spreadChart, spotChart };
+    }
+
+    /* ── Term structure chart ──────────────────────────────────── */
+
+    let termChart = null;
+
+    function rebuildTermChart() {
+      if (termChart) termChart.destroy();
+      termChart = buildTermStructureChart();
+      document.getElementById('termSection').style.display =
+        (state.pairKey === 'brent_wti' && window.FUTURES_DATA) ? '' : 'none';
+    }
+
+    function buildTermStructureChart() {
+      if (!window.FUTURES_DATA || !window.BENCHMARK_DATA) return null;
+
+      const cats = ['Spot', '1m', '2m', '3m', '6m', '12m', '24m'];
+      const values = [];
+      const dates = [];
+
+      const spotRows = buildRowsForPair(PAIRS[0]);
+      if (spotRows.length > 0) {
+        const last = spotRows[spotRows.length - 1];
+        values.push(+(last.brent - last.wti).toFixed(2));
+        dates.push(last.date);
+      } else { values.push(null); dates.push(null); }
+
+      for (const tenor of window.FUTURES_DATA.tenors) {
+        const data = window.FUTURES_DATA[tenor];
+        if (data && data.rows.length > 0) {
+          const lastRow = data.rows[data.rows.length - 1];
+          values.push(lastRow[1]);
+          dates.push(lastRow[0].split(' ')[0]);
+        } else { values.push(null); dates.push(null); }
+      }
+
+      const latestDate = dates.filter(Boolean).sort().pop();
+      const metaEl = document.getElementById('termMeta');
+      if (metaEl && latestDate) metaEl.textContent = `As of ${fmtDate(latestDate)}`;
+
+      const barColors = values.map(v =>
+        v === null ? 'rgba(0,0,0,0)' : v >= 0 ? 'rgba(50, 105, 86, 0.55)' : 'rgba(164, 75, 54, 0.55)'
+      );
+      const borderColors = values.map(v =>
+        v === null ? 'rgba(0,0,0,0)' : v >= 0 ? 'rgba(50, 105, 86, 0.85)' : 'rgba(164, 75, 54, 0.85)'
+      );
+
+      return new Chart(document.getElementById('termChart').getContext('2d'), {
+        type: 'bar',
+        data: {
+          labels: cats,
+          datasets: [{ data: values, backgroundColor: barColors, borderColor: borderColors, borderWidth: 1, borderRadius: 4 }],
+        },
+        plugins: [{
+          id: 'barValueLabels',
+          afterDraw(chart) {
+            const ctx = chart.ctx;
+            const meta = chart.getDatasetMeta(0);
+            chart.data.datasets[0].data.forEach((val, i) => {
+              if (val === null) return;
+              const bar = meta.data[i];
+              ctx.save();
+              ctx.textAlign = 'center';
+              ctx.textBaseline = val >= 0 ? 'bottom' : 'top';
+              ctx.fillStyle = '#6f6153';
+              ctx.font = '600 11px "Avenir Next", sans-serif';
+              ctx.fillText(`$${val.toFixed(2)}`, bar.x, val >= 0 ? bar.y - 4 : bar.y + 4);
+              ctx.restore();
+            });
+          },
+        }],
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
           plugins: {
             legend: { display: false },
             annotation: {
               annotations: {
                 zeroLine: {
-                  type: 'line',
-                  yMin: 0,
-                  yMax: 0,
+                  type: 'line', yMin: 0, yMax: 0,
                   borderColor: 'rgba(72, 58, 43, 0.22)',
-                  borderWidth: 1,
-                  borderDash: [4, 3],
+                  borderWidth: 1, borderDash: [4, 3],
                   drawTime: 'beforeDatasetsDraw',
                 },
               },
@@ -1149,58 +1148,20 @@
               backgroundColor: '#fff7eb',
               borderColor: 'rgba(72, 58, 43, 0.18)',
               borderWidth: 1,
-              titleColor: '#17120d',
-              bodyColor: '#30261d',
-              padding: 10,
-              displayColors: false,
+              titleColor: '#17120d', bodyColor: '#30261d',
+              padding: 10, displayColors: false,
               callbacks: {
-                title(items) {
-                  if (!items.length) return '';
-                  const d = new Date(items[0].parsed.x);
-                  const mo = monthNames[d.getUTCMonth()];
-                  const dy = d.getUTCDate();
-                  const yr = d.getUTCFullYear();
-                  const hh = String(d.getUTCHours()).padStart(2, '0');
-                  const mm = String(d.getUTCMinutes()).padStart(2, '0');
-                  return hh === '00' && mm === '00'
-                    ? `${mo} ${dy}, ${yr}`
-                    : `${mo} ${dy}, ${yr} ${hh}:${mm}`;
-                },
-                label(ctx) {
-                  return ctx.parsed.y === null
-                    ? `${ctx.dataset.label}: —`
-                    : `${ctx.dataset.label}: $${ctx.parsed.y.toFixed(2)}`;
-                },
+                label(ctx) { return ctx.parsed.y === null ? '—' : `$${ctx.parsed.y.toFixed(2)}`; },
               },
             },
           },
           scales: {
             x: {
-              type: 'time',
-              min: timeBounds ? timeBounds.min : undefined,
-              max: timeBounds ? timeBounds.max : undefined,
-              time: {
-                unit: timeUnit,
-                displayFormats: {
-                  day: 'MMM d',
-                  week: 'MMM d',
-                  month: 'MMM yyyy',
-                  year: 'yyyy',
-                },
-              },
-              ticks: {
-                color: '#6f6153',
-                maxRotation: 0,
-                autoSkip: true,
-                maxTicksLimit: compact ? 4 : 8,
-              },
+              ticks: { color: '#6f6153', font: { weight: 600, size: 12 } },
               grid: { color: 'rgba(72, 58, 43, 0)' },
             },
             y: {
-              ticks: {
-                color: '#6f6153',
-                callback(value) { return `$${value.toFixed(1)}`; },
-              },
+              ticks: { color: '#6f6153', callback(v) { return `$${v.toFixed(1)}`; } },
               grid: { color: 'rgba(72, 58, 43, 0.08)' },
             },
           },
@@ -1208,19 +1169,39 @@
       });
     }
 
-    function rebuildFuturesCharts() {
-      futuresCharts.forEach(fc => { if (fc) fc.destroy(); });
-      futuresCharts = [];
-      renderFuturesGrid();
-      if (!window.FUTURES_DATA) return;
-      const timeBounds = computeSharedTimeBounds();
-      for (const tenor of window.FUTURES_DATA.tenors) {
-        futuresCharts.push(buildFuturesChart(tenor, timeBounds));
-      }
+    /* ── Render all + Init ─────────────────────────────────────── */
+
+    function renderAll() {
+      renderPairTabs();
+      renderToolbar();
+      renderLegend();
+      renderCallout();
+      renderStats();
+      renderFooter();
+      rebuildTermChart();
+      rebuildChart();
     }
 
-    renderFuturesToolbar();
-    rebuildFuturesCharts();
+    renderAll();
+
+    let lastCompact = isCompact();
+    let resizeFrame = null;
+
+    window.addEventListener('resize', () => {
+      if (resizeFrame !== null) cancelAnimationFrame(resizeFrame);
+      resizeFrame = requestAnimationFrame(() => {
+        resizeFrame = null;
+        const compact = isCompact();
+        if (compact !== lastCompact) {
+          lastCompact = compact;
+          rebuildChart();
+          rebuildTermChart();
+          return;
+        }
+        if (chart) chart.resize();
+        if (termChart) termChart.resize();
+      });
+    });
   </script>
 </body>
 </html>
