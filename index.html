@@ -832,9 +832,15 @@
       c.style.width = ''; c.style.height = '';
     }
 
+    function destroyCanvasChart(id) {
+      const c = document.getElementById(id);
+      const existing = Chart.getChart(c);
+      if (existing) existing.destroy();
+    }
+
     function rebuildChart() {
-      if (chart) chart.destroy();
-      if (spotChartInstance) spotChartInstance.destroy();
+      destroyCanvasChart('chart');
+      destroyCanvasChart('spotChart');
       resetCanvas('chart');
       resetCanvas('spotChart');
       const result = buildChart();
@@ -880,7 +886,7 @@
       }
 
       // Convert to {x, y} for time scale
-      const spreadPoints = spreadValues.map((v, i) => v === null ? null : { x: dateToUtc(labels[i]), y: v });
+      const spreadPoints = spreadValues.map((v, i) => v === null ? null : { x: dateToUtc(labels[i]), y: v }).filter(Boolean);
       const maPoints = averageValues.map((v, i) => v === null ? null : { x: dateToUtc(labels[i]), y: v }).filter(Boolean);
 
       const validSpread = spreadPoints.filter(Boolean);
@@ -946,7 +952,7 @@
           .filter(k => state.overlays[k])
           .map(k => ({
             label: getBenchmarkLabel(k),
-            data: (benchmarkSeries[k] || []).map((v, i) => v === null ? null : { x: dateToUtc(labels[i]), y: v }),
+            data: (benchmarkSeries[k] || []).map((v, i) => v === null ? null : { x: dateToUtc(labels[i]), y: v }).filter(Boolean),
             borderColor: SERIES_COLORS[k],
             backgroundColor: 'transparent',
             borderWidth: 1.7,
