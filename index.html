@@ -167,7 +167,7 @@
   }
 
   .futures-chart-shell h3 {
-    margin-bottom: 8px;
+    margin-bottom: 0;
     color: var(--muted);
     font-family: "Avenir Next", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
     font-size: 13px;
@@ -246,6 +246,40 @@
 
   .legend-dot.spread { background: #1b6878; }
   .legend-dot.ma { background: #b76a22; }
+
+  .futures-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+
+  .futures-header h3 {
+    margin-bottom: 0;
+  }
+
+  .futures-header-right {
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  .futures-current {
+    font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+
+  .futures-current.positive { color: #326956; }
+  .futures-current.negative { color: #a44b36; }
+
+  .futures-date-range {
+    color: var(--muted);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    opacity: 0.8;
+  }
 
   /* ── Footer ── */
   .site-footer {
@@ -963,11 +997,14 @@
       const grid = document.getElementById('futuresGrid');
       grid.innerHTML = window.FUTURES_DATA.tenors.map(tenor => `
         <div class="futures-chart-shell">
-          <h3>
-            <span class="legend-dot spread"></span>
-            <span class="legend-dot ma"></span>
-            ${TENOR_DISPLAY[tenor] ?? tenor}
-          </h3>
+          <div class="futures-header">
+            <h3>
+              <span class="legend-dot spread"></span>
+              <span class="legend-dot ma"></span>
+              ${TENOR_DISPLAY[tenor] ?? tenor}
+            </h3>
+            <div class="futures-header-right" id="futures-meta-${tenor}"></div>
+          </div>
           <div class="futures-chart-frame" id="futures-frame-${tenor}">
             <canvas id="futures-${tenor}"></canvas>
           </div>
@@ -982,6 +1019,8 @@
         if (frame) {
           frame.innerHTML = '<div class="futures-empty">Accumulating data…</div>';
         }
+        const meta = document.getElementById(`futures-meta-${tenor}`);
+        if (meta) meta.innerHTML = '';
         return null;
       }
 
@@ -992,7 +1031,25 @@
         if (frame) {
           frame.innerHTML = '<div class="futures-empty">No data for this time range</div>';
         }
+        const meta = document.getElementById(`futures-meta-${tenor}`);
+        if (meta) meta.innerHTML = '';
         return null;
+      }
+
+      // Populate current value and date range in header
+      const latestSpread = rows[rows.length - 1][1];
+      const firstDateRaw = rows[0][0].split(' ')[0];
+      const lastDateRaw = rows[rows.length - 1][0].split(' ')[0];
+      const fmtShort = (d) => {
+        const [y, m, dy] = d.split('-');
+        return `${monthNames[Number(m) - 1]} ${Number(dy)}, ${y}`;
+      };
+      const metaEl = document.getElementById(`futures-meta-${tenor}`);
+      if (metaEl) {
+        metaEl.innerHTML = `
+          <span class="futures-current ${latestSpread >= 0 ? 'positive' : 'negative'}">$${latestSpread.toFixed(2)}</span>
+          <div class="futures-date-range">${fmtShort(firstDateRaw)} — ${fmtShort(lastDateRaw)}</div>
+        `;
       }
 
       const labels = rows.map(r => r[0]);
