@@ -138,6 +138,59 @@
     height: 100% !important;
   }
 
+  h2 {
+    margin: 32px 0 18px;
+    color: var(--text);
+    font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+    font-size: clamp(22px, 3.5vw, 32px);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+  }
+
+  .futures-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+
+  .futures-chart-shell {
+    padding: 14px;
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.78), rgba(255, 255, 255, 0.34) 100%),
+      var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 22px;
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(10px);
+  }
+
+  .futures-chart-shell h3 {
+    margin-bottom: 8px;
+    color: var(--muted);
+    font-family: "Avenir Next", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .futures-chart-frame {
+    position: relative;
+    width: 100%;
+    height: 260px;
+  }
+
+  .futures-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 260px;
+    color: var(--muted);
+    font-size: 13px;
+    font-style: italic;
+  }
+
   @media (max-width: 760px) {
     .page {
       padding: 18px 12px 20px;
@@ -163,6 +216,22 @@
       height: clamp(320px, calc(100vh - 220px), 560px);
       min-height: 320px;
     }
+
+    .futures-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .futures-chart-frame {
+      height: 220px;
+    }
+
+    .futures-empty {
+      height: 220px;
+    }
+
+    h2 {
+      margin: 24px 0 14px;
+    }
   }
 </style>
 </head>
@@ -185,9 +254,17 @@
         <canvas id="chart"></canvas>
       </div>
     </section>
+    <h2>Brent − WTI Futures Spread</h2>
+    <section class="toolbar">
+      <div class="toolbar-row" id="futuresHorizonControls">
+        <span class="toolbar-label">View</span>
+      </div>
+    </section>
+    <div class="futures-grid" id="futuresGrid"></div>
   </main>
 
   <script src="./benchmark_data.js"></script>
+  <script src="./futures_data.js"></script>
   <script>
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     const HORIZONS = [
@@ -643,11 +720,221 @@
         if (compact !== lastCompactViewport) {
           lastCompactViewport = compact;
           rebuildChart();
+          rebuildFuturesCharts();
           return;
         }
         chart.resize();
+        futuresCharts.forEach(fc => { if (fc) fc.resize(); });
       });
     });
+
+    /* ── Futures charts ─────────────────────────────────────── */
+
+    const FUTURES_HORIZONS = [
+      { key: '1m', label: '1M', days: 31 },
+      { key: '6m', label: '6M', days: 183 },
+      { key: '1y', label: '1Y', days: 365 },
+      { key: '3y', label: '3Y', days: 365 * 3 },
+      { key: '5y', label: '5Y', days: 365 * 5 },
+      { key: 'max', label: 'MAX', days: null },
+    ];
+
+    const TENOR_DISPLAY = {
+      '1m': '1-Month',
+      '2m': '2-Month',
+      '3m': '3-Month',
+      '6m': '6-Month',
+      '12m': '12-Month',
+      '24m': '24-Month',
+    };
+
+    const futuresState = { horizonKey: '3y' };
+    let futuresCharts = [];
+
+    function filterFuturesRows(rows, horizonKey) {
+      const horizon = FUTURES_HORIZONS.find(h => h.key === horizonKey) ?? FUTURES_HORIZONS[0];
+      if (horizon.days === null || rows.length === 0) return rows.slice();
+      const latestTime = dateToUtc(rows[rows.length - 1][0]);
+      const cutoff = latestTime - (horizon.days * 24 * 60 * 60 * 1000);
+      return rows.filter(row => dateToUtc(row[0]) >= cutoff);
+    }
+
+    function formatFuturesAxisTick(dateValue, totalPoints, compact) {
+      const [year, month, day] = dateValue.split('-');
+      const monthLabel = monthNames[Number(month) - 1];
+      if (totalPoints > 1200) return compact ? [monthLabel, year] : `${monthLabel} ${year}`;
+      if (totalPoints > 260) return compact ? [monthLabel, year] : `${monthLabel} ${year}`;
+      return `${monthLabel} ${Number(day)}`;
+    }
+
+    function renderFuturesToolbar() {
+      document.getElementById('futuresHorizonControls').innerHTML = `
+        <span class="toolbar-label">View</span>
+        ${FUTURES_HORIZONS.map(h => `
+          <button class="chip ${futuresState.horizonKey === h.key ? 'active' : ''}" data-futures-horizon="${h.key}">
+            ${h.label}
+          </button>
+        `).join('')}
+      `;
+      document.querySelectorAll('[data-futures-horizon]').forEach(button => {
+        button.addEventListener('click', () => {
+          futuresState.horizonKey = button.dataset.futuresHorizon;
+          renderFuturesToolbar();
+          rebuildFuturesCharts();
+        });
+      });
+    }
+
+    function renderFuturesGrid() {
+      if (!window.FUTURES_DATA) return;
+      const grid = document.getElementById('futuresGrid');
+      grid.innerHTML = window.FUTURES_DATA.tenors.map(tenor => `
+        <div class="futures-chart-shell">
+          <h3>${TENOR_DISPLAY[tenor] ?? tenor}</h3>
+          <div class="futures-chart-frame" id="futures-frame-${tenor}">
+            <canvas id="futures-${tenor}"></canvas>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function buildFuturesChart(tenor) {
+      const data = window.FUTURES_DATA[tenor];
+      if (!data || data.rows.length === 0) {
+        const frame = document.getElementById(`futures-frame-${tenor}`);
+        if (frame) {
+          frame.innerHTML = '<div class="futures-empty">Accumulating data…</div>';
+        }
+        return null;
+      }
+
+      const compact = isCompactViewport();
+      const rows = filterFuturesRows(data.rows, futuresState.horizonKey);
+      if (rows.length === 0) {
+        const frame = document.getElementById(`futures-frame-${tenor}`);
+        if (frame) {
+          frame.innerHTML = '<div class="futures-empty">No data for this time range</div>';
+        }
+        return null;
+      }
+
+      const labels = rows.map(r => r[0]);
+      const spreadValues = rows.map(r => r[1]);
+      const maValues = movingAverage(spreadValues, 20);
+      const useLineSpread = labels.length > 500;
+
+      const canvas = document.getElementById(`futures-${tenor}`);
+      if (!canvas) return null;
+
+      return new Chart(canvas.getContext('2d'), {
+        type: useLineSpread ? 'line' : 'bar',
+        data: {
+          labels,
+          datasets: [
+            useLineSpread
+              ? {
+                  label: `Brent − WTI ${TENOR_DISPLAY[tenor]}`,
+                  data: spreadValues,
+                  type: 'line',
+                  borderColor: SERIES_COLORS.spread,
+                  backgroundColor: 'rgba(27, 104, 120, 0.16)',
+                  fill: true,
+                  borderWidth: 1.8,
+                  pointRadius: 0,
+                  pointHitRadius: 6,
+                  tension: 0.14,
+                  spanGaps: true,
+                  order: 2,
+                }
+              : {
+                  label: `Brent − WTI ${TENOR_DISPLAY[tenor]}`,
+                  data: spreadValues,
+                  type: 'bar',
+                  backgroundColor: spreadValues.map(v => v >= 0 ? 'rgba(50, 105, 86, 0.46)' : 'rgba(164, 75, 54, 0.46)'),
+                  borderColor: spreadValues.map(v => v >= 0 ? 'rgba(50, 105, 86, 0.86)' : 'rgba(164, 75, 54, 0.86)'),
+                  borderWidth: 1,
+                  order: 2,
+                },
+            {
+              label: '20d MA',
+              data: maValues,
+              type: 'line',
+              borderColor: SERIES_COLORS.movingAverage,
+              backgroundColor: 'transparent',
+              borderWidth: 1.4,
+              pointRadius: 0,
+              pointHitRadius: 6,
+              tension: 0.2,
+              spanGaps: true,
+              order: 1,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: '#fff7eb',
+              borderColor: 'rgba(72, 58, 43, 0.18)',
+              borderWidth: 1,
+              titleColor: '#17120d',
+              bodyColor: '#30261d',
+              padding: 10,
+              displayColors: false,
+              callbacks: {
+                title(items) {
+                  if (!items.length) return '';
+                  const [yr, mo, dy] = items[0].label.split('-');
+                  return `${monthNames[Number(mo) - 1]} ${Number(dy)}, ${yr}`;
+                },
+                label(ctx) {
+                  return ctx.parsed.y === null
+                    ? `${ctx.dataset.label}: —`
+                    : `${ctx.dataset.label}: $${ctx.parsed.y.toFixed(2)}`;
+                },
+              },
+            },
+          },
+          scales: {
+            x: {
+              ticks: {
+                color: '#6f6153',
+                maxRotation: 0,
+                autoSkip: true,
+                maxTicksLimit: compact ? 4 : 8,
+                callback(value) {
+                  return formatFuturesAxisTick(this.getLabelForValue(value), labels.length, compact);
+                },
+              },
+              grid: { color: 'rgba(72, 58, 43, 0)' },
+            },
+            y: {
+              ticks: {
+                color: '#6f6153',
+                callback(value) { return `$${value.toFixed(1)}`; },
+              },
+              grid: { color: 'rgba(72, 58, 43, 0.08)' },
+            },
+          },
+        },
+      });
+    }
+
+    function rebuildFuturesCharts() {
+      futuresCharts.forEach(fc => { if (fc) fc.destroy(); });
+      futuresCharts = [];
+      renderFuturesGrid();
+      if (!window.FUTURES_DATA) return;
+      for (const tenor of window.FUTURES_DATA.tenors) {
+        futuresCharts.push(buildFuturesChart(tenor));
+      }
+    }
+
+    renderFuturesToolbar();
+    rebuildFuturesCharts();
   </script>
 </body>
 </html>

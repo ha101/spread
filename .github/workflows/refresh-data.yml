@@ -35,10 +35,14 @@ jobs:
       - name: Configure Pages
         uses: actions/configure-pages@v5
 
+      - name: Install Python dependencies
+        run: pip install yfinance
+
       - name: Refresh generated datasets
         run: |
           python refresh_spread_history.py
           python build_benchmark_dataset.py
+          python build_futures_spread.py
           python build_spread_market_dataset.py
           python build_spread_stock_dataset.py
 
@@ -51,6 +55,8 @@ jobs:
           git add \
             all_data.js \
             benchmark_data.js \
+            futures_data.js \
+            futures_cache/ \
             wti_fred.csv \
             brent_fred.csv \
             wti_monthly_fred.csv \

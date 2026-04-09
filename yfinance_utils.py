@@ -68,6 +68,24 @@ def fetch_wti_and_brent(start_date=None, wti_cache=None, brent_cache=None):
     return wti, brent
 
 
+MONTH_CODES = ['F', 'G', 'H', 'J', 'K', 'M', 'N', 'Q', 'U', 'V', 'X', 'Z']
+
+
+def futures_ticker(base, month_code, year_2digit):
+    """Build a Yahoo Finance futures ticker, e.g. CLM26.NYM or BZM26.NYM."""
+    return f'{base}{month_code}{year_2digit:02d}.NYM'
+
+
+def fetch_futures_contract(base, month_code, year_2digit, cache_dir):
+    """Fetch daily closes for a single futures contract.
+
+    Returns dict of {date_str: close_price}.
+    """
+    ticker = futures_ticker(base, month_code, year_2digit)
+    cache_path = Path(cache_dir) / f'{base}{month_code}{year_2digit:02d}.csv'
+    return fetch_yfinance_daily(ticker, start_date='2000-01-01', cache_path=cache_path)
+
+
 def _write_cache(path, series):
     lines = ['observation_date,value']
     for date_str in sorted(series):

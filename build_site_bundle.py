@@ -7,6 +7,7 @@ DIST_PATH = BASE_PATH / 'dist'
 PUBLIC_FILES = [
     'index.html',
     'benchmark_data.js',
+    'futures_data.js',
 ]
 OPTIONAL_FILES = [
     'CNAME',
