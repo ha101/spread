@@ -4,71 +4,76 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Crude Oil Spreads</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
 <style>
   :root {
-    --bg: #f4ecdf;
-    --panel: rgba(255, 249, 240, 0.94);
-    --border: rgba(72, 58, 43, 0.14);
-    --text: #17120d;
-    --muted: #6f6153;
-    --accent: #1b6878;
-    --shadow: 0 22px 44px rgba(52, 35, 16, 0.10);
+    --bg: #131316;
+    --surface: #1c1c20;
+    --surface2: #242429;
+    --border: rgba(255, 255, 255, 0.07);
+    --text: #ededf0;
+    --muted: #7c7c85;
+    --accent: #5b9bf7;
+    --accent2: rgba(91, 155, 247, 0.12);
+    --positive: #34d399;
+    --negative: #f87171;
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
   body {
     min-height: 100vh;
-    font-family: "Avenir Next", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     color: var(--text);
-    background:
-      radial-gradient(circle at top right, rgba(27, 104, 120, 0.12), transparent 34%),
-      radial-gradient(circle at bottom left, rgba(183, 106, 34, 0.10), transparent 28%),
-      linear-gradient(180deg, #f8f2e8 0%, #ede2d1 100%);
+    background: var(--bg);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
-  .page { max-width: 1240px; margin: 0 auto; padding: 24px 16px 32px; }
+  .page { max-width: 1240px; margin: 0 auto; padding: 28px 24px 32px; }
 
   h1 {
-    margin-bottom: 18px;
+    margin-bottom: 20px;
     color: var(--text);
-    font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
-    font-size: clamp(30px, 5vw, 48px);
+    font-size: 28px;
     font-weight: 600;
-    letter-spacing: -0.03em;
-    line-height: 0.98;
+    letter-spacing: -0.02em;
+    line-height: 1;
   }
 
   /* ── Pair tabs ── */
   .pair-tabs {
     display: flex;
-    gap: 0;
-    margin-bottom: 14px;
+    gap: 2px;
+    margin-bottom: 16px;
     border-bottom: 1px solid var(--border);
+    padding-bottom: 0;
   }
 
   .pair-tab {
-    padding: 10px 18px;
+    padding: 6px 12px;
     border: none;
     background: transparent;
     color: var(--muted);
     font-family: inherit;
     font-size: 13px;
-    font-weight: 600;
+    font-weight: 500;
     cursor: pointer;
-    border-bottom: 2px solid transparent;
-    margin-bottom: -1px;
-    transition: color 0.15s ease, border-color 0.15s ease;
+    border-radius: 6px;
+    margin-bottom: 8px;
+    transition: color 0.12s ease, background 0.12s ease;
   }
 
-  .pair-tab:hover { color: var(--text); }
+  .pair-tab:hover { color: var(--text); background: var(--surface2); }
 
   .pair-tab.active {
     color: var(--accent);
-    border-bottom-color: var(--accent);
+    background: var(--accent2);
   }
 
   /* ── Toolbar ── */
@@ -76,20 +81,16 @@
     display: flex;
     flex-direction: column;
     gap: 10px;
-    margin-bottom: 14px;
+    margin-bottom: 16px;
     padding: 12px 14px;
-    background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.68), rgba(255, 255, 255, 0.32) 100%),
-      var(--panel);
+    background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 22px;
-    box-shadow: var(--shadow);
-    backdrop-filter: blur(10px);
+    border-radius: 10px;
   }
 
   .toolbar-row {
     display: flex;
-    gap: 8px;
+    gap: 6px;
     align-items: center;
     overflow-x: auto;
     scrollbar-width: none;
@@ -99,16 +100,16 @@
 
   .toolbar-row + .toolbar-row {
     padding-top: 10px;
-    border-top: 1px solid rgba(72, 58, 43, 0.08);
+    border-top: 1px solid var(--border);
   }
 
   .toolbar-label {
     flex: 0 0 auto;
     color: var(--muted);
-    font-size: 11px;
+    font-size: 10px;
     text-transform: uppercase;
-    letter-spacing: 0.12em;
-    font-weight: 700;
+    letter-spacing: 0.08em;
+    font-weight: 600;
     margin-right: 4px;
   }
 
@@ -122,39 +123,40 @@
 
   .chip {
     flex: 0 0 auto;
-    padding: 8px 14px;
-    border: 1px solid var(--border);
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.72);
+    padding: 5px 10px;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    background: var(--surface2);
     color: var(--muted);
     font-size: 12px;
-    font-weight: 600;
+    font-weight: 500;
     cursor: pointer;
-    transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+    transition: border-color 0.12s ease, color 0.12s ease, background 0.12s ease;
   }
 
-  .chip:hover, .chip.active {
-    border-color: rgba(27, 104, 120, 0.32);
-    background: rgba(27, 104, 120, 0.10);
+  .chip:hover {
+    color: var(--text);
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .chip.active {
+    border-color: rgba(91, 155, 247, 0.25);
+    background: var(--accent2);
     color: var(--accent);
   }
 
   .chip.active[data-overlay] {
-    border-color: var(--chip-color, rgba(27, 104, 120, 0.32));
-    background: var(--chip-bg, rgba(27, 104, 120, 0.10));
+    border-color: var(--chip-color, rgba(91, 155, 247, 0.25));
+    background: var(--chip-bg, var(--accent2));
     color: var(--chip-color, var(--accent));
   }
 
   /* ── Chart panels ── */
   .chart-shell {
     padding: 18px;
-    background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.78), rgba(255, 255, 255, 0.34) 100%),
-      var(--panel);
+    background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 22px;
-    box-shadow: var(--shadow);
-    backdrop-filter: blur(10px);
+    border-radius: 10px;
   }
 
   .chart-shell + .chart-shell { margin-top: 10px; }
@@ -178,42 +180,42 @@
   }
 
   .callout-value {
-    font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
-    font-size: clamp(28px, 4vw, 42px);
-    font-weight: 700;
+    font-size: 32px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
     letter-spacing: -0.02em;
     line-height: 1;
   }
 
-  .callout-value.positive { color: #326956; }
-  .callout-value.negative { color: #a44b36; }
+  .callout-value.positive { color: var(--positive); }
+  .callout-value.negative { color: var(--negative); }
 
-  .callout-meta { color: var(--muted); font-size: 12px; font-weight: 500; line-height: 1.3; }
-  .callout-change { font-weight: 700; font-variant-numeric: tabular-nums; }
-  .callout-change.up { color: #326956; }
-  .callout-change.down { color: #a44b36; }
+  .callout-meta { color: var(--muted); font-size: 13px; font-weight: 500; line-height: 1.3; }
+  .callout-change { font-weight: 600; font-variant-numeric: tabular-nums; }
+  .callout-change.up { color: var(--positive); }
+  .callout-change.down { color: var(--negative); }
 
   /* ── Custom tooltip ── */
   #chartTooltip {
     position: absolute;
     pointer-events: none;
     z-index: 100;
-    background: #fff7eb;
-    border: 1px solid rgba(72, 58, 43, 0.18);
-    border-radius: 10px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
     padding: 10px 14px;
-    font-family: "Avenir Next", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
     font-size: 12px;
-    color: #30261d;
-    box-shadow: 0 8px 24px rgba(52, 35, 16, 0.12);
+    color: var(--text);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
     opacity: 0;
     transition: opacity 0.12s ease;
     white-space: nowrap;
   }
 
   .tt-title {
-    font-weight: 700;
-    color: #17120d;
+    font-weight: 600;
+    color: var(--muted);
     margin-bottom: 6px;
     font-size: 11px;
   }
@@ -234,8 +236,8 @@
   }
 
   .tt-line strong {
-    font-weight: 700;
-    color: #17120d;
+    font-weight: 600;
+    color: var(--text);
   }
 
   /* ── Stats row ── */
@@ -250,7 +252,7 @@
   }
 
   .stat-item { display: flex; gap: 5px; align-items: baseline; }
-  .stat-label { text-transform: uppercase; font-size: 10px; letter-spacing: 0.08em; font-weight: 700; }
+  .stat-label { text-transform: uppercase; font-size: 10px; letter-spacing: 0.06em; font-weight: 600; }
   .stat-val { font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums; }
 
   /* ── Legend ── */
@@ -263,8 +265,8 @@
     padding: 0 4px;
     color: var(--muted);
     font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.04em;
+    font-weight: 500;
+    letter-spacing: 0.02em;
   }
 
   .legend-item { display: flex; align-items: center; gap: 5px; white-space: nowrap; }
@@ -283,11 +285,11 @@
     text-align: right;
     color: var(--muted);
     font-size: 10px;
-    font-weight: 700;
+    font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.08em;
     margin-top: 6px;
-    opacity: 0.6;
+    opacity: 0.5;
   }
 
   /* ── Term structure ── */
@@ -304,10 +306,9 @@
   .term-header h2 {
     margin: 0;
     color: var(--text);
-    font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
-    font-size: clamp(18px, 2.5vw, 24px);
+    font-size: 18px;
     font-weight: 600;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.01em;
     line-height: 1.1;
   }
 
@@ -328,19 +329,19 @@
   .site-footer a {
     color: var(--muted);
     text-decoration: underline;
-    text-decoration-color: rgba(111, 97, 83, 0.3);
+    text-decoration-color: rgba(255, 255, 255, 0.15);
     text-underline-offset: 2px;
   }
   .site-footer a:hover { color: var(--text); }
 
   /* ── Mobile ── */
   @media (max-width: 760px) {
-    .page { padding: 18px 12px 20px; }
-    h1 { margin-bottom: 14px; font-size: clamp(28px, 9vw, 40px); }
-    .pair-tabs { gap: 0; margin-bottom: 12px; }
-    .pair-tab { padding: 8px 12px; font-size: 12px; }
-    .toolbar { margin-bottom: 12px; padding: 10px 12px; border-radius: 18px; }
-    .chart-shell { padding: 12px; border-radius: 18px; }
+    .page { padding: 18px 14px 20px; }
+    h1 { margin-bottom: 16px; font-size: 24px; }
+    .pair-tabs { margin-bottom: 12px; }
+    .pair-tab { padding: 5px 10px; font-size: 12px; }
+    .toolbar { margin-bottom: 12px; padding: 10px 12px; border-radius: 8px; }
+    .chart-shell { padding: 12px; border-radius: 8px; }
     .chart-frame { height: clamp(320px, calc(100vh - 220px), 560px); min-height: 320px; }
     .spot-frame { height: 140px; }
     .term-frame { height: 180px; }
@@ -422,17 +423,17 @@
     ];
 
     const SERIES_COLORS = {
-      spread: '#1b6878',
-      ma: '#b76a22',
-      wti: '#5d7d45',
-      brent: '#8a543f',
-      dubai: '#6b5aa6',
-      opec: '#c06040',
+      spread: '#5b9bf7',
+      ma: '#f5a524',
+      wti: '#34d399',
+      brent: '#f87171',
+      dubai: '#c084fc',
+      opec: '#fb923c',
     };
 
     const TENOR_COLORS = {
-      '1m': '#5ca3b0', '2m': '#7b8fc0', '3m': '#9a7ab8',
-      '6m': '#c07a8a', '12m': '#c09a5a', '24m': '#7aaa6a',
+      '1m': '#94a3b8', '2m': '#2dd4bf', '3m': '#4ade80',
+      '6m': '#e879a8', '12m': '#e8a050', '24m': '#a78bfa',
     };
 
     const TENOR_LABELS = {
@@ -708,7 +709,7 @@
         ctx.moveTo(chart._crosshairX, top);
         ctx.lineTo(chart._crosshairX, bottom);
         ctx.lineWidth = 1;
-        ctx.strokeStyle = 'rgba(72, 58, 43, 0.25)';
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
         ctx.setLineDash([4, 3]);
         ctx.stroke();
         ctx.restore();
@@ -936,8 +937,8 @@
           unit: timeUnit,
           displayFormats: { day: 'MMM d', week: 'MMM d', month: 'MMM yyyy', year: 'yyyy' },
         },
-        ticks: { color: '#6f6153', maxRotation: 0, autoSkip: true, maxTicksLimit: compact ? 6 : 12 },
-        grid: { color: 'rgba(72, 58, 43, 0)' },
+        ticks: { color: '#7c7c85', maxRotation: 0, autoSkip: true, maxTicksLimit: compact ? 6 : 12 },
+        grid: { color: 'rgba(255, 255, 255, 0)' },
       };
 
       // ── Spot price panel ──
@@ -981,10 +982,10 @@
               },
             },
             scales: {
-              x: { ...xScaleConfig, ticks: { display: false }, grid: { color: 'rgba(72, 58, 43, 0)' } },
+              x: { ...xScaleConfig, ticks: { display: false }, grid: { color: 'rgba(255, 255, 255, 0)' } },
               y: {
-                ticks: { color: '#6f6153', callback(v) { return `$${v}`; } },
-                grid: { color: 'rgba(72, 58, 43, 0.08)' },
+                ticks: { color: '#7c7c85', callback(v) { return `$${v}`; } },
+                grid: { color: 'rgba(255, 255, 255, 0.05)' },
               },
             },
           },
@@ -1002,7 +1003,7 @@
               label: pair.label,
               data: spreadPoints,
               borderColor: SERIES_COLORS.spread,
-              backgroundColor: 'rgba(27, 104, 120, 0.13)',
+              backgroundColor: 'rgba(91, 155, 247, 0.10)',
               fill: true,
               borderWidth: 2,
               pointRadius: 0, pointHitRadius: 6,
@@ -1034,7 +1035,7 @@
               annotations: {
                 zeroLine: {
                   type: 'line', yMin: 0, yMax: 0,
-                  borderColor: 'rgba(72, 58, 43, 0.22)',
+                  borderColor: 'rgba(255, 255, 255, 0.12)',
                   borderWidth: 1, borderDash: [4, 3],
                   drawTime: 'beforeDatasetsDraw',
                 },
@@ -1053,8 +1054,8 @@
           scales: {
             x: xScaleConfig,
             y: {
-              ticks: { color: '#6f6153', callback(v) { return `$${v.toFixed(1)}`; } },
-              grid: { color: 'rgba(72, 58, 43, 0.08)' },
+              ticks: { color: '#7c7c85', callback(v) { return `$${v.toFixed(1)}`; } },
+              grid: { color: 'rgba(255, 255, 255, 0.05)' },
             },
           },
         },
@@ -1102,10 +1103,10 @@
       if (metaEl && latestDate) metaEl.textContent = `Futures as of ${fmtDate(latestDate)}`;
 
       const barColors = values.map(v =>
-        v === null ? 'rgba(0,0,0,0)' : v >= 0 ? 'rgba(50, 105, 86, 0.55)' : 'rgba(164, 75, 54, 0.55)'
+        v === null ? 'rgba(0,0,0,0)' : v >= 0 ? 'rgba(91, 155, 247, 0.40)' : 'rgba(248, 113, 113, 0.30)'
       );
       const borderColors = values.map(v =>
-        v === null ? 'rgba(0,0,0,0)' : v >= 0 ? 'rgba(50, 105, 86, 0.85)' : 'rgba(164, 75, 54, 0.85)'
+        v === null ? 'rgba(0,0,0,0)' : v >= 0 ? 'rgba(91, 155, 247, 0.65)' : 'rgba(248, 113, 113, 0.55)'
       );
 
       return new Chart(document.getElementById('termChart').getContext('2d'), {
@@ -1125,8 +1126,8 @@
               ctx.save();
               ctx.textAlign = 'center';
               ctx.textBaseline = val >= 0 ? 'bottom' : 'top';
-              ctx.fillStyle = '#6f6153';
-              ctx.font = '600 11px "Avenir Next", sans-serif';
+              ctx.fillStyle = '#7c7c85';
+              ctx.font = '600 11px "Inter", sans-serif';
               ctx.fillText(`$${val.toFixed(2)}`, bar.x, val >= 0 ? bar.y - 4 : bar.y + 4);
               ctx.restore();
             });
@@ -1141,17 +1142,17 @@
               annotations: {
                 zeroLine: {
                   type: 'line', yMin: 0, yMax: 0,
-                  borderColor: 'rgba(72, 58, 43, 0.22)',
+                  borderColor: 'rgba(255, 255, 255, 0.12)',
                   borderWidth: 1, borderDash: [4, 3],
                   drawTime: 'beforeDatasetsDraw',
                 },
               },
             },
             tooltip: {
-              backgroundColor: '#fff7eb',
-              borderColor: 'rgba(72, 58, 43, 0.18)',
+              backgroundColor: '#242429',
+              borderColor: 'rgba(255, 255, 255, 0.07)',
               borderWidth: 1,
-              titleColor: '#17120d', bodyColor: '#30261d',
+              titleColor: '#ededf0', bodyColor: '#7c7c85',
               padding: 10, displayColors: false,
               callbacks: {
                 label(ctx) { return ctx.parsed.y === null ? '—' : `$${ctx.parsed.y.toFixed(2)}`; },
@@ -1160,12 +1161,12 @@
           },
           scales: {
             x: {
-              ticks: { color: '#6f6153', font: { weight: 600, size: 12 } },
-              grid: { color: 'rgba(72, 58, 43, 0)' },
+              ticks: { color: '#7c7c85', font: { weight: 600, size: 12 } },
+              grid: { color: 'rgba(255, 255, 255, 0)' },
             },
             y: {
-              ticks: { color: '#6f6153', callback(v) { return `$${v.toFixed(1)}`; } },
-              grid: { color: 'rgba(72, 58, 43, 0.08)' },
+              ticks: { color: '#7c7c85', callback(v) { return `$${v.toFixed(1)}`; } },
+              grid: { color: 'rgba(255, 255, 255, 0.05)' },
             },
           },
         },
