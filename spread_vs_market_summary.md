@@ -7,9 +7,9 @@
 
 ### S&P 500
 
-- Overlap window: 2016-07-01 to 2026-06-29
-- Overlap observations: 2463
-- Level correlation: 0.0819
+- Overlap window: 2016-07-05 to 2026-06-29
+- Overlap observations: 2462
+- Level correlation: 0.0809
 - Same-day return correlation: 0.0172
 - Next-day return correlation: -0.0564
 
