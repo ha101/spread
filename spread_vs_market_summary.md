@@ -1,41 +1,41 @@
 # Brent/WTI Spread vs Market Indexes
 
-- Spread window: 1987-05-20 to 2026-07-20
-- Spread observations: 9760
+- Spread window: 1987-05-20 to 2026-07-27
+- Spread observations: 9765
 
 ## Correlations By Series
 
 ### S&P 500
 
-- Overlap window: 2016-07-29 to 2026-07-20
-- Overlap observations: 2458
-- Level correlation: 0.0534
-- Same-day return correlation: 0.0177
-- Next-day return correlation: -0.0569
+- Overlap window: 2016-07-29 to 2026-07-27
+- Overlap observations: 2463
+- Level correlation: 0.0591
+- Same-day return correlation: 0.0171
+- Next-day return correlation: -0.0563
 
 ### Nasdaq Composite
 
-- Overlap window: 1987-05-20 to 2026-07-20
-- Overlap observations: 9730
-- Level correlation: 0.3298
-- Same-day return correlation: -0.0235
-- Next-day return correlation: -0.0114
+- Overlap window: 1987-05-20 to 2026-07-27
+- Overlap observations: 9735
+- Level correlation: 0.3309
+- Same-day return correlation: -0.0236
+- Next-day return correlation: -0.0115
 
 ### Dow Jones Industrial Average
 
-- Overlap window: 2016-07-29 to 2026-07-20
-- Overlap observations: 2458
-- Level correlation: 0.0984
-- Same-day return correlation: 0.0059
-- Next-day return correlation: -0.0476
+- Overlap window: 2016-07-29 to 2026-07-27
+- Overlap observations: 2463
+- Level correlation: 0.1036
+- Same-day return correlation: 0.0051
+- Next-day return correlation: -0.0469
 
 ### VIX
 
-- Overlap window: 1990-01-02 to 2026-07-20
-- Overlap observations: 9072
-- Level correlation: -0.0708
-- Same-day return correlation: 0.0446
-- Next-day return correlation: -0.0188
+- Overlap window: 1990-01-02 to 2026-07-27
+- Overlap observations: 9077
+- Level correlation: -0.0709
+- Same-day return correlation: 0.0448
+- Next-day return correlation: -0.0192
 
 ## Notes
 
