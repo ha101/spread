@@ -3,14 +3,14 @@
 - Source series:
   - Brent/WTI prices from `all_data.js`
   - S&P 500 from FRED series `SP500`
-- Overlap window: 2016-08-29 to 2026-08-25
-- Overlap observations: 2463
+- Overlap window: 2016-09-01 to 2026-08-25
+- Overlap observations: 2460
 
 ## Correlations
 
-- Spread level vs S&P 500 level: 0.0656
+- Spread level vs S&P 500 level: 0.0646
 - Daily spread change vs same-day S&P 500 return: 0.0170
-- Daily spread change vs next-day S&P 500 return: -0.0544
+- Daily spread change vs next-day S&P 500 return: -0.0543
 - Daily spread change vs previous-day S&P 500 return: 0.0521
 
 ## Notes
