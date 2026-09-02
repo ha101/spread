@@ -23,9 +23,9 @@
 
 ### Dow Jones Industrial Average
 
-- Overlap window: 2016-09-02 to 2026-09-01
-- Overlap observations: 2463
-- Level correlation: 0.1050
+- Overlap window: 2016-09-06 to 2026-09-01
+- Overlap observations: 2462
+- Level correlation: 0.1044
 - Same-day return correlation: 0.0051
 - Next-day return correlation: -0.0435
 
