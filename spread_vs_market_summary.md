@@ -7,11 +7,11 @@
 
 ### S&P 500
 
-- Overlap window: 2016-09-09 to 2026-09-01
-- Overlap observations: 2459
-- Level correlation: 0.0624
-- Same-day return correlation: 0.0178
-- Next-day return correlation: -0.0542
+- Overlap window: 2016-09-12 to 2026-09-01
+- Overlap observations: 2458
+- Level correlation: 0.0620
+- Same-day return correlation: 0.0180
+- Next-day return correlation: -0.0545
 
 ### Nasdaq Composite
 
