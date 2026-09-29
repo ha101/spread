@@ -23,10 +23,10 @@
 
 ### Dow Jones Industrial Average
 
-- Overlap window: 2016-09-29 to 2026-09-22
-- Overlap observations: 2459
-- Level correlation: 0.1323
-- Same-day return correlation: 0.0042
+- Overlap window: 2016-09-30 to 2026-09-22
+- Overlap observations: 2458
+- Level correlation: 0.1316
+- Same-day return correlation: 0.0043
 - Next-day return correlation: -0.0450
 
 ### VIX
